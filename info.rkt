@@ -10,4 +10,4 @@
 
 (define primary-file "hash-lambda/main.rkt")
 
-(define scribblings '(("hash-lambda/docs.scrbl" ())))
+;(define scribblings '(("hash-lambda/docs.scrbl" ())))
