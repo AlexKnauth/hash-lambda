@@ -1,0 +1,105 @@
+#lang racket/base (require (for-syntax racket/base))
+
+(provide mutable-case-lambda
+         mutable-match-lambda*
+         (struct-out mutable-match-lambda-procedure)
+         mutable-match-lambda-append
+         mutable-match-lambda-add-clause!
+         mutable-match-lambda-add-overriding-clause!
+         (struct-out exn:fail:mutable-match-lambda:no-match)
+         (struct-out exn:fail:mutable-match-lambda:no-match:next-clause)
+         raise-mutable-match-lambda:no-match-error)
+
+(module+ test
+  (require rackunit)
+  
+  (define dup (mutable-match-lambda))
+  (mutable-match-lambda-add-clause! dup (make-clause-proc string?  (lambda (s) (string-append s s))))
+  (mutable-match-lambda-add-clause! dup #:match-lambda* [(list (? integer? n)) (list n n)])
+  
+  (check-equal? (dup "Hello") "HelloHello")
+  (check-equal? (dup 10) '(10 10))
+  
+  )
+
+(require racket/format
+         racket/function
+         racket/match
+         (for-syntax
+          syntax/parse))
+(require "../hash-lambda/main.rkt"
+         "../hash-lambda/mutable-match-lambda/make-clause-proc.rkt")
+
+(begin-for-syntax
+  (define-syntax-class kw
+    (pattern kw:keyword)))
+
+(define-syntax-rule (mutable-case-lambda clause ...)
+  (mutable-match-lambda-procedure
+   (list (case-lambda-clause->proc clause) ...)))
+
+(define-syntax-rule (mutable-hash-lambda/match clause ...)
+  (mutable-match-lambda-procedure
+   (list (hash-lambda/match-clause->proc clause) ...)))
+
+(define-syntax-rule (mutable-match-lambda clause ...)
+  (mutable-match-lambda-procedure
+   (list (match-lambda-clause->proc clause) ...)))
+
+(define-syntax-rule (mutable-match-lambda* clause ...)
+  (mutable-match-lambda-procedure
+   (list (match-lambda*-clause->proc clause) ...)))
+
+
+
+(struct mutable-match-lambda-procedure (procs)
+  #:transparent #:mutable
+  #:property prop:procedure
+  (lambda (this . args)
+    (let ([procs (mutable-match-lambda-procedure-procs this)])
+      (define proc (apply mutable-match-lambda-append procs))
+      (apply proc args))))
+
+(define mutable-match-lambda-append
+  (case-lambda
+    [() (case-lambda)]
+    [(f) f]
+    [(f1 f2) (lambda args
+               (with-handlers ([exn:fail:mutable-match-lambda:no-match:next-clause?
+                                (λ (e) (apply f2 args))])
+                 (parameterize ([within-mutable-match-lambda-append? #t])
+                   (apply f1 args))))]))
+
+(define (mutable-match-lambda-add-clause-proc! proc . clause-procs)
+  (set-mutable-match-lambda-procedure-procs! proc
+                                             (append (mutable-match-lambda-procedure-procs proc)
+                                                     clause-procs)))
+
+(define (mutable-match-lambda-add-overriding-clause-proc! proc . clause-procs)
+  (set-mutable-match-lambda-procedure-procs! proc
+                                             (append clause-procs
+                                                     (mutable-match-lambda-procedure-procs proc))))
+
+(define-syntax mutable-match-lambda-add-clause!
+  (lambda (stx)
+    (syntax-parse stx
+      [(mutable-match-lambda-add-clause! proc:expr clause-proc:expr ...)
+       #'(mutable-match-lambda-add-clause-proc! proc clause-proc ...)]
+      [(mutable-match-lambda-add-clause! proc:expr kw:kw clause:expr ...)
+       #'(mutable-match-lambda-add-clause-proc! proc (clause->proc kw clause) ...)]
+      [mutable-match-lambda-add-clause!:id
+       #'mutable-match-lambda-add-clause-proc!]
+      )))
+
+(define-syntax mutable-match-lambda-add-overriding-clause!
+  (lambda (stx)
+    (syntax-parse stx
+      [(mutable-match-lambda-add-overriding-clause! proc:expr clause-proc:expr ...)
+       #'(mutable-match-lambda-add-overriding-clause-proc! proc clause-proc ...)]
+      [(mutable-match-lambda-add-overriding-clause! proc:expr kw:kw clause:expr ...)
+       #'(mutable-match-lambda-add-overriding-clause-proc! proc (clause->proc kw clause) ...)]
+      [mutable-match-lambda-add-overriding-clause!:id
+       #'mutable-match-lambda-add-overriding-clause-proc!]
+      )))
+
+
