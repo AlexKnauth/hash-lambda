@@ -9,16 +9,19 @@
 
 (require racket/match)
 
-(require (for-syntax "../../../../../syntax-to-string.rkt"))
+(require (for-syntax "../syntax-to-string.rkt"))
 
-(require "../../hash-lambda/main.rkt")
+(require "../../hash-lambda.rkt")
 
 (define (make-clause-proc test proc)
-  (keyword-lambda (kws kw-args . rest-args)
-    (cond [(keyword-apply test kws kw-args rest-args)
-           (keyword-apply proc kws kw-args rest-args)]
-          [else
-           (raise-mutable-match-lambda:no-match-error (keyword-apply make-args-hash kws kw-args rest-args))])))
+  (procedure-rename
+   (keyword-lambda (kws kw-args . rest-args)
+     (cond [(and (arity+keywords-matches? (procedure-arity+keywords test) (length rest-args) kws)
+                 (keyword-apply test kws kw-args rest-args))
+            (keyword-apply proc kws kw-args rest-args)]
+           [else
+            (raise-mutable-match-lambda:no-match-error (keyword-apply make-args-hash kws kw-args rest-args))]))
+   (string->symbol (format "(make-clause-proc ~v ~v)" test proc))))
 
 (define-syntax clause->proc
   (lambda (stx)

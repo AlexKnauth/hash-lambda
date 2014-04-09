@@ -14,7 +14,7 @@
          hash-has-key?/c
          match?/c
          make-hash-lambda-contract
-         (all-from-out "misc/keyword-lambda.rkt" "misc/arity+keywords.rkt")
+         (all-from-out "misc/keyword-lambda.rkt")
          args-hash->string
          )
 
@@ -32,8 +32,7 @@
 
 
 
-(require "misc/keyword-lambda.rkt"
-         "misc/arity+keywords.rkt")
+(require "misc/keyword-lambda.rkt")
 
 
 

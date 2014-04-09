@@ -1,74 +1,55 @@
 #lang racket/base (require (for-syntax racket/base))
 
-(provide mutable-case-lambda
-         mutable-match-lambda*
-         (struct-out mutable-match-lambda-procedure)
+(provide (struct-out mutable-match-lambda-procedure)
+         make-mutable-match-lambda
          mutable-match-lambda-append
          mutable-match-lambda-add-clause!
          mutable-match-lambda-add-overriding-clause!
-         (struct-out exn:fail:mutable-match-lambda:no-match)
-         (struct-out exn:fail:mutable-match-lambda:no-match:next-clause)
-         raise-mutable-match-lambda:no-match-error)
+         (all-from-out "make-clause-proc.rkt")
+         )
 
-(module+ test
-  (require rackunit)
-  
-  (define dup (mutable-match-lambda))
-  (mutable-match-lambda-add-clause! dup (make-clause-proc string?  (lambda (s) (string-append s s))))
-  (mutable-match-lambda-add-clause! dup #:match-lambda* [(list (? integer? n)) (list n n)])
-  
-  (check-equal? (dup "Hello") "HelloHello")
-  (check-equal? (dup 10) '(10 10))
-  
-  )
 
-(require racket/format
-         racket/function
-         racket/match
-         (for-syntax
+
+(require (for-syntax
           syntax/parse))
-(require "../hash-lambda/main.rkt"
-         "../hash-lambda/mutable-match-lambda/make-clause-proc.rkt")
+(require "make-clause-proc.rkt"
+         "../keyword-lambda.rkt")
 
 (begin-for-syntax
   (define-syntax-class kw
     (pattern kw:keyword)))
 
-(define-syntax-rule (mutable-case-lambda clause ...)
-  (mutable-match-lambda-procedure
-   (list (case-lambda-clause->proc clause) ...)))
-
-(define-syntax-rule (mutable-hash-lambda/match clause ...)
-  (mutable-match-lambda-procedure
-   (list (hash-lambda/match-clause->proc clause) ...)))
-
-(define-syntax-rule (mutable-match-lambda clause ...)
-  (mutable-match-lambda-procedure
-   (list (match-lambda-clause->proc clause) ...)))
-
-(define-syntax-rule (mutable-match-lambda* clause ...)
-  (mutable-match-lambda-procedure
-   (list (match-lambda*-clause->proc clause) ...)))
-
-
+(define (make-mutable-match-lambda . procs)
+  (mutable-match-lambda-procedure procs)) 
 
 (struct mutable-match-lambda-procedure (procs)
   #:transparent #:mutable
   #:property prop:procedure
-  (lambda (this . args)
+  (keyword-lambda (kws kw-args this . args)
     (let ([procs (mutable-match-lambda-procedure-procs this)])
       (define proc (apply mutable-match-lambda-append procs))
-      (apply proc args))))
+      (keyword-apply proc kws kw-args args)))
+  #:methods gen:custom-write
+  [(define (write-proc this out mode)
+     (begin
+       (display "(make-mutable-match-lambda" out)
+       (for ([proc (in-list (mutable-match-lambda-procedure-procs this))])
+         (display " " out) (print proc out))
+       (display ")")))])
+
+
 
 (define mutable-match-lambda-append
   (case-lambda
     [() (case-lambda)]
     [(f) f]
-    [(f1 f2) (lambda args
+    [(f1 f2) (keyword-lambda (kws kw-args . args)
                (with-handlers ([exn:fail:mutable-match-lambda:no-match:next-clause?
-                                (λ (e) (apply f2 args))])
+                                (λ (e) (keyword-apply f2 kws kw-args args))])
                  (parameterize ([within-mutable-match-lambda-append? #t])
-                   (apply f1 args))))]))
+                   (keyword-apply f1 kws kw-args args))))]
+    [(f1 . rst) (mutable-match-lambda-append f1 (apply mutable-match-lambda-append rst))]
+    ))
 
 (define (mutable-match-lambda-add-clause-proc! proc . clause-procs)
   (set-mutable-match-lambda-procedure-procs! proc

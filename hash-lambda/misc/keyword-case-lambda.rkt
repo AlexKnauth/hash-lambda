@@ -9,8 +9,7 @@
          (for-syntax syntax/parse))
 
 (require "../hash-lambda.rkt"
-         "keyword-lambda.rkt"
-         "arity+keywords.rkt")
+         "keyword-lambda.rkt")
 
 (module+ test
   (require rackunit))
