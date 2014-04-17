@@ -5,23 +5,27 @@
 
 (require racket/match
          racket/string
-         racket/list)
+         racket/list
+         racket/format)
 
 (define (syntax->string stx #:stx.e [stx.e (syntax-e stx)])
   (cond [(symbol? stx.e)  (symbol->string stx.e)]
         [(number? stx.e)  (number->string stx.e)]
-        [(string? stx.e)  (format "~v" stx.e)]
-        [(bytes? stx.e)   (format "~v" stx.e)]
-        [(regexp? stx.e)  (format "~v" stx.e)]
-        [(boolean? stx.e) (format "~v" stx.e)]
+        [(string? stx.e)  (~v stx.e)]
+        [(bytes? stx.e)   (~v stx.e)]
+        [(regexp? stx.e)  (~v stx.e)]
+        [(boolean? stx.e) (~v stx.e)]
         [(keyword? stx.e) (string-append "#:"(keyword->string stx.e))]
-        [(list? stx.e)    (syntax-list->string stx #:stx.e stx.e)]
-        [(pair? stx.e)    (syntax-pair->string stx #:stx.e stx.e)]
-        [(vector? stx.e)  (syntax-vector->string stx #:stx.e stx.e)]
-        [(box? stx.e)     (syntax-box->string stx #:stx.e stx.e)]
-        [(hash? stx.e)    (syntax-hash->string stx #:stx.e stx.e)]
-        [(prefab-struct? stx.e) (syntax-prefab-struct->string stx #:stx.e stx.e)]
-        [else (error 'syntax->string "!!! not done yet. given: ~v, stx.e is: ~v" stx stx.e)]))
+        [else
+         (let ([stx.lst (syntax->list stx)])
+           (cond
+             [(list? stx.lst) (syntax-list->string stx #:stx.lst stx.lst)]
+             [(pair? stx.e)   (syntax-pair->string stx #:stx.e stx.e)]
+             [(vector? stx.e) (syntax-vector->string stx #:stx.e stx.e)]
+             [(box? stx.e)    (syntax-box->string stx #:stx.e stx.e)]
+             [(hash? stx.e)   (syntax-hash->string stx #:stx.e stx.e)]
+             [(prefab-struct? stx.e) (syntax-prefab-struct->string stx #:stx.e stx.e)]
+             [else (error 'syntax->string "!!! not done yet. given: ~v, stx.e is: ~v" stx stx.e)]))]))
 
 (define (quoted->string dat)
   (syntax->string (datum->syntax #f dat)))
@@ -30,19 +34,19 @@
 
 ;; helper functions
 
-(define (syntax-list->string stx #:stx.e [stx.e (syntax-e stx)])
+(define (syntax-list->string stx #:stx.lst [stx.lst (syntax->list stx)])
   (cond 
-    [(and (= 2 (length stx.e))
-          (member (syntax-e (car stx.e))
+    [(and (= 2 (length stx.lst))
+          (member (syntax-e (car stx.lst))
                   (list 'quote  'quasiquote  'unquote  'unquote-splicing
                         'syntax 'quasisyntax 'unsyntax 'unsyntax-splicing)))
-     (syntax->string:handle-quote-etc stx #:stx.e stx.e)]
+     (syntax->string:handle-quote-etc stx #:stx.lst stx.lst)]
     [else
      (let ([stx.paren-shape (cond [(syntax-property stx 'paren-shape)] [else #\(])])
        (match stx.paren-shape
-         [#\( (string-append "("(string-join (map syntax->string stx.e))")")]
-         [#\[ (string-append "["(string-join (map syntax->string stx.e))"]")]
-         [#\{ (string-append "{"(string-join (map syntax->string stx.e))"}")]))]))
+         [#\( (string-append "("(string-join (map syntax->string stx.lst))")")]
+         [#\[ (string-append "["(string-join (map syntax->string stx.lst))"]")]
+         [#\{ (string-append "{"(string-join (map syntax->string stx.lst))"}")]))]))
 
 (define (syntax-pair->string stx #:stx.e [stx.e (syntax-e stx)])
   (cond [(list? stx.e) (syntax-list->string stx #:stx.e stx.e)]
@@ -88,8 +92,8 @@
       [#\[ (string-append "#s["(quoted->string prefab-key)" "(string-join (map syntax->string field-vals))"]")]
       [#\{ (string-append "#s{"(quoted->string prefab-key)" "(string-join (map syntax->string field-vals))"}")])))
 
-(define (syntax->string:handle-quote-etc stx #:stx.e [stx.e (syntax-e stx)])
-  (match (match stx.e [`(,quote-etc ,thing) `(,(syntax-e quote-etc) ,thing)])
+(define (syntax->string:handle-quote-etc stx #:stx.lst [stx.lst (syntax->list stx)])
+  (match (match stx.lst [`(,quote-etc ,thing) `(,(syntax-e quote-etc) ,thing)])
     [`(quote ,stx_0)            (string-append "'"(syntax->string stx_0))]
     [`(quasiquote ,stx_0)       (string-append "`"(syntax->string stx_0))]
     [(list 'unquote stx_0)      (string-append ","(syntax->string stx_0))]
@@ -146,5 +150,8 @@
   (check-equal? (syntax->string (syntax #`this)) "#`this")
   (check-equal? (syntax->string (syntax #,this)) "#,this")
   (check-equal? (syntax->string (syntax #,@this)) "#,@this")
+  
+  (check-equal? (syntax->string #'(lambda (x) (+ x 1))) "(lambda (x) (+ x 1))")
+  (check-equal? (syntax->string #'(lambda (x) . ((+ x 1)))) "(lambda (x) (+ x 1))")
   
   )
