@@ -2,7 +2,7 @@
 
 @title[#:style '(toc)]{hash-lambda}
 
-@defmodule[hash-lambda/all]
+@;defmodule[hash-lambda/all]
 
 @local-table-of-contents[]
 
