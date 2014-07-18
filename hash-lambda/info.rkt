@@ -1,7 +1,7 @@
 #lang info
 
-(define scribblings '(;["docs/table-of-contents.scrbl" (multi-page)]
-                      ["docs/hash-lambda.scrbl" ()]
+(define scribblings '(["docs/table-of-contents.scrbl" (multi-page)]
+                      ;["docs/hash-lambda.scrbl" ()]
                       ;["docs/misc.rkt" (multi-page)]
                       ;["docs/misc/keyword-lambda.scrbl" ()]
                       ;["docs/misc/arity+keywords.scrbl" ()]
