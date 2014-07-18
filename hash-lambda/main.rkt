@@ -25,7 +25,7 @@
          racket/list
          racket/math)
 
-(require (for-syntax racket/base syntax/parse racket/list
+(require (for-syntax racket/base syntax/parse racket/list syntax/name
                      (for-syntax racket/base)))
 
 (module+ test
@@ -69,11 +69,12 @@
       [(hash-lambda [args-hash:id args-hash-contract] body:expr ...+)
        #:declare args-hash-contract
        (expr/c #'contract? #:name (string-append "contract for "(id->string #'args-hash)""))
-       #'(local [(define/contract |#<procedure>|
-                   (make-hash-lambda-contract args-hash-contract 'any)
-                   (hash-lambda args-hash
-                     body ...))]
-           |#<procedure>|)]
+       (with-syntax ([name (syntax-local-infer-name stx)])
+         #'(local [(define/contract name
+                     (make-hash-lambda-contract args-hash-contract 'any)
+                     (hash-lambda args-hash
+                       body ...))]
+             name))]
       )))
 
 (struct hash-lambda-procedure (proc)
@@ -97,12 +98,14 @@
         args-hash))
     (check-match (return-args-hash "0" "1" #:keyword "keyword-argument" "2")
                  (hash-table [0 "0"] [1 "1"] [2 "2"] ['#:keyword "keyword-argument"]))
+    (check-equal? (object-name return-args-hash) 'return-args-hash)
     (define my+
       (hash-lambda args-hash
         (+ (hash-ref args-hash 0)
            (hash-ref args-hash 1))))
     (check-equal? (my+ 1 2)
                   3)
+    (check-equal? (object-name my+) 'my+)
     (define/contract kinetic-energy (#:mass number? #:velocity number? . -> . number?)
       (hash-lambda args-hash
         (let ([mass     (hash-ref args-hash '#:mass)]
@@ -110,6 +113,7 @@
           (* 1/2 mass (sqr velocity)))))
     (check-equal? (kinetic-energy #:mass 2 #:velocity 1)
                   1)
+    (check-equal? (object-name kinetic-energy) 'kinetic-energy)
     )
   (local []
     (define my+
@@ -118,12 +122,14 @@
         (+ a b)]))
     (check-equal? (my+ 1 2)
                   3)
+    (check-equal? (object-name my+) 'my+)
     (define/contract kinetic-energy (#:mass number? #:velocity number? . -> . number?)
       (hash-lambda/match
        [(hash-table ['#:mass mass] ['#:velocity velocity])
         (* 1/2 mass (sqr velocity))]))
     (check-equal? (kinetic-energy #:mass 2 #:velocity 1)
                   1)
+    (check-equal? (object-name kinetic-energy) 'kinetic-energy)
     )
   )
 
@@ -242,14 +248,16 @@
 
 (define/contract make-args-hash-function
   (unconstrained-domain-> args-hash?)
-  (keyword-lambda (kws kw-args . rest)
-    (make-hash
-     (append (for/list ([kw     (in-list kws)]
-                        [kw-arg (in-list kw-args)])
-               (cons kw kw-arg))
-             (for/list ([n (in-naturals)]
-                        [arg (in-list rest)])
-               (cons n arg))))))
+  (let ([make-args-hash
+         (keyword-lambda (kws kw-args . rest)
+           (make-hash
+            (append (for/list ([kw     (in-list kws)]
+                               [kw-arg (in-list kw-args)])
+                      (cons kw kw-arg))
+                    (for/list ([n (in-naturals)]
+                               [arg (in-list rest)])
+                      (cons n arg)))))])
+    make-args-hash))
 
 (module+ test
   (check-match (make-args-hash 1 2 3 #:kw-1 'kw-arg-1 #:kw-2 'kw-arg-2)
@@ -265,7 +273,7 @@
   (lambda (stx) ; as normal make-args-hash-function
     (syntax-parse stx
       [(make-args-hash stuff ...)
-       #'(#%app make-args-hash stuff ...)]
+       #'(make-args-hash-function stuff ...)]
       [make-args-hash
        #'make-args-hash-function])))
 
@@ -301,17 +309,17 @@
   )
 
 (define args-hash-cons-function
-  (procedure-rename
-   (hash-lambda/match
-     [(hash-table [(and (or 0 (? keyword?)) key) val]
-                  [(or 0 1) args-hash])
-      (hash-set (for/hash ([(key_0 val_0) (in-hash args-hash)])
-                  (cond [(and (number? key_0) (equal? 0 key))
-                         (values (add1 key_0) val_0)]
-                        [else
-                         (values key_0 val_0)]))
-                key val)])
-   'args-hash-cons))
+  (let ([args-hash-cons
+         (hash-lambda/match
+           [(hash-table [(and (or 0 (? keyword?)) key) val]
+                        [(or 0 1) args-hash])
+            (hash-set (for/hash ([(key_0 val_0) (in-hash args-hash)])
+                        (cond [(and (number? key_0) (equal? 0 key))
+                               (values (add1 key_0) val_0)]
+                              [else
+                               (values key_0 val_0)]))
+                      key val)])])
+    args-hash-cons))
 
 (module+ test
   (check-match (args-hash-cons "thing" (hash 0 "0" 1 "1" 2 "2" '#:kw "kw-arg"))
@@ -339,7 +347,7 @@
   (lambda (stx) ; as normal args-hash-cons-function
     (syntax-parse stx
       [(args-hash-cons stuff ...)
-       #'(#%app args-hash-cons stuff ...)]
+       #'(args-hash-cons-function stuff ...)]
       [args-hash-cons
        #'args-hash-cons-function])))
 
@@ -351,20 +359,19 @@
   )
 
 (define args-hash-cons*-function
-  (procedure-rename
-   (procedure-reduce-arity
-    (hash-lambda/match
-      [(hash-table [0 args-hash])
-       args-hash]
-      [(hash-table [0 val] [1 args-hash])
-       (args-hash-cons val args-hash)]
-      [(hash-table [0 args-hash] [(? keyword? kws) kw-args] ...)
-       (keyword-apply/sort make-args-hash kws kw-args (list args-hash))]
-      [(args-hash-cons val (args-hash-cons val-or-args-hash rest-hash))
-       (args-hash-cons val (apply/hash args-hash-cons* (args-hash-cons val-or-args-hash rest-hash)))]
-      )
-    (arity-at-least 1))
-   'args-hash-cons*))
+  (let ([args-hash-cons*
+         (hash-lambda/match
+           [(hash-table [0 args-hash])
+            args-hash]
+           [(hash-table [0 val] [1 args-hash])
+            (args-hash-cons val args-hash)]
+           [(hash-table [0 args-hash] [(? keyword? kws) kw-args] ...)
+            (keyword-apply/sort make-args-hash kws kw-args (list args-hash))]
+           [(args-hash-cons val (args-hash-cons val-or-args-hash rest-hash))
+            (args-hash-cons val (apply/hash args-hash-cons*
+                                            (args-hash-cons val-or-args-hash rest-hash)))]
+           )])
+    args-hash-cons*))
 
 (module+ test
   (check-match (args-hash-cons* "thing" "other-thing" (hash 0 "0" 1 "1" 2 "2" '#:kw "kw-arg"))
@@ -398,7 +405,7 @@
   (lambda (stx) ; as normal args-hash-cons*-function
     (syntax-parse stx
       [(args-hash-cons* stuff ...)
-       #'(#%app args-hash-cons* stuff ...)]
+       #'(args-hash-cons*-function stuff ...)]
       [args-hash-cons*
        #'args-hash-cons*-function])))
 

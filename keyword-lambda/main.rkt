@@ -14,15 +14,24 @@
 (require racket/function
          racket/bool
          racket/contract
-         racket/list)
+         racket/list
+         (for-syntax racket/base syntax/parse syntax/name))
 
 (module+ test
   (require rackunit racket/local racket/math))
 
 ;; (keyword-lambda (kws kw-args . rest-args) body ...+)
-(define-syntax-rule (keyword-lambda (kws kw-args . rest-args) body ...)
-  (make-keyword-procedure
-   (lambda (kws kw-args . rest-args) body ...)))
+(define-syntax keyword-lambda
+  (lambda (stx)
+    (syntax-parse stx
+      [(keyword-lambda (kws:id kw-args:id . rest-args) body:expr ...+)
+       (with-syntax ([name (syntax-local-infer-name stx)])
+         #'(make-keyword-procedure
+             (lambda (kws kw-args . rest-args) body ...)
+             (let* ([kws '()]
+                    [kw-args '()]
+                    [name (lambda rest-args body ...)])
+               name)))])))
 
 (module+ test
   (local [(define proc
@@ -30,6 +39,7 @@
               (list kws kw-args rest-args)))]
     (check-equal? (proc #:a 'a #:b 'b 0 1 2)
                   (list '(#:a #:b) '(a b) '(0 1 2)))
+    (check-equal? (object-name proc) 'proc)
     ))
 
 ;; like keyword-apply, but without the constraint that the kws must be sorted
