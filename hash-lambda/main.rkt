@@ -64,12 +64,12 @@
          ;                 body ...))
        #'(keyword-lambda (kws kw-args . rest)
            (let ([args-hash (keyword-apply make-args-hash kws kw-args rest)])
-             body ...))
-       ]
+             body ...))]
       [(hash-lambda [args-hash:id args-hash-contract] body:expr ...+)
        #:declare args-hash-contract
        (expr/c #'contract? #:name (string-append "contract for "(id->string #'args-hash)""))
-       (with-syntax ([name (syntax-local-infer-name stx)])
+       (with-syntax ([name (cond [(syntax-local-infer-name stx)]
+                                 [else '||])])
          #'(local [(define/contract name
                      (make-hash-lambda-contract args-hash-contract 'any)
                      (hash-lambda args-hash

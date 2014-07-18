@@ -25,13 +25,20 @@
   (lambda (stx)
     (syntax-parse stx
       [(keyword-lambda (kws:id kw-args:id . rest-args) body:expr ...+)
-       (with-syntax ([name (syntax-local-infer-name stx)])
-         #'(make-keyword-procedure
-             (lambda (kws kw-args . rest-args) body ...)
-             (let* ([kws '()]
-                    [kw-args '()]
-                    [name (lambda rest-args body ...)])
-               name)))])))
+       (define name (syntax-local-infer-name stx))
+       (cond [(or (symbol? name) (identifier? name))
+              (with-syntax ([name name])
+                #'(make-keyword-procedure
+                   (lambda (kws kw-args . rest-args) body ...)
+                   (let* ([kws '()]
+                          [kw-args '()]
+                          [name (lambda rest-args body ...)])
+                     name)))]
+             [else #'(make-keyword-procedure
+                        (lambda (kws kw-args . rest-args) body ...)
+                        (let* ([kws '()]
+                               [kw-args '()])
+                          (lambda rest-args body ...)))])])))
 
 (module+ test
   (local [(define proc
