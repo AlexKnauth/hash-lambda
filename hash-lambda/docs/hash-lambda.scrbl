@@ -1,4 +1,4 @@
-#lang scribble/doc @(require scribble/manual)
+#lang scribble/manual
 @(require scribble/eval racket/sandbox)
 @(require racket/base)
 @(require hash-lambda)
@@ -32,9 +32,10 @@
 
 @defmodule[hash-lambda #:packages ("hash-lambda")]{
 
-These functions allow you to create a
-"@hyperlink["http://docs.racket-lang.org/guide/lambda.html?q=rest-argument#%28part._rest-args%29" #:underline? #f]{rest argument}"
+These functions allow you to create a "rest argument"
+@margin-note*{see @secref["rest-args" #:doc '(lib "scribblings/guide/guide.scrbl")]}
 that includes keyword arguments.  
+
 Instead of storing the arguments in a list, @racket[hash-lambda] stores them in a hash table, 
 where you can use @racket[(hash-ref args-hash 0)], etc. to access by-position arguments, 
 and @racket[(hash-ref args-hash '#:<kw>)], etc. to access keyword arguments, or you can use

@@ -1,4 +1,4 @@
-#lang scribble/doc @(require scribble/manual)
+#lang scribble/manual
 
 @title[#:style '(toc)]{hash-lambda}
   
