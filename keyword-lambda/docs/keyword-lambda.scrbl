@@ -1,8 +1,8 @@
-#lang scribble/doc @(require scribble/manual)
+#lang scribble/manual
 @(require scribble/eval racket/sandbox)
 @(require racket/base)
-@(require hash-lambda)
-@(require (for-label hash-lambda
+@(require keyword-lambda)
+@(require (for-label keyword-lambda
                      racket/base
                      racket/match
                      racket/format
@@ -16,7 +16,7 @@
    (parameterize ([sandbox-namespace-specs (list make-base-namespace)]
                   [sandbox-output 'string]
                   [sandbox-error-output 'string])
-     (make-evaluator '(begin (require hash-lambda
+     (make-evaluator '(begin (require keyword-lambda
                                       racket/match
                                       racket/format
                                       racket/local
@@ -28,7 +28,7 @@
 
 @title{keyword-lambda}
 
-@defmodule[hash-lambda/misc/keyword-lambda #:packages ("hash-lambda")]
+@defmodule[keyword-lambda]
 
 @section{keyword-lambda, keyword-apply/sort, and procedure-reduce-keyword-arity/sort}
 
@@ -48,8 +48,10 @@ equivalent to
   (proc #:a 'a #:b 'b 0 1 2)
 ]}
 
-@defproc[(keyword-apply/sort [f procedure?] [kws (listof keyword?)] [kw-args list?] [v any/c] ... [lst list?] [#:<kw> kw-arg any/c] ...) any]{
-like @racket[keyword-apply], but without the constraint that the keywords in @racket[kws] must be sorted.  
+@defproc[(keyword-apply/sort [f procedure?] [kws (listof keyword?)] [kw-args list?]
+                             [v any/c] ... [lst list?] [#:<kw> kw-arg any/c] ...) any]{
+like @racket[keyword-apply], but without the constraint that the keywords in @racket[kws] must be
+sorted.  
 
 @examples[
   #:eval
@@ -60,21 +62,31 @@ like @racket[keyword-apply], but without the constraint that the keywords in @ra
   (keyword-apply/sort kinetic-energy '(#:velocity #:mass) '(1 2) '())
 ]}
 
-@defproc[(procedure-reduce-keyword-arity/sort [proc procedure?] [arity procedure-arity?] [required-kws (listof keyword?)] [allowed-kws (or/c (listof keyword?) #f)])
+@defproc[(procedure-reduce-keyword-arity/sort [proc procedure?]
+                                              [arity procedure-arity?]
+                                              [required-kws (listof keyword?)]
+                                              [allowed-kws (or/c (listof keyword?) #f)])
          procedure?]{
-like @racket[procedure-reduce-keyword-arity], but without the constraint that the keywords in @racket[required-kws] or @racket[allowed-kws] must be sorted.
+like @racket[procedure-reduce-keyword-arity], but without the constraint that the keywords in
+@racket[required-kws] or @racket[allowed-kws] must be sorted.
 }
 
 @section{arity+keywords}
 
-@defstruct*[arity+keywords ([arity procedure-arity?] [required-kws (listof keyword?)] [allowed-kws (or/c (listof keyword?) #f)]) #:transparent]{
+@defstruct*[arity+keywords ([arity procedure-arity?]
+                            [required-kws (listof keyword?)]
+                            [allowed-kws (or/c (listof keyword?) #f)])
+                           #:transparent]{
 represents a procedure's arity including the keywords required and keywords allowed.
+
 The @racket[arity] field represents the arity produced by @racket[procedure-arity].
-The next 2 fields (@racket[required-kws] and @racket[allowed-kws]) represent the 2 values produced by @racket[procedure-keywords].  
+
+The next 2 fields (@racket[required-kws] and @racket[allowed-kws]) represent the 2 values produced by
+@racket[procedure-keywords].  
 }
 
 @defproc[(procedure-arity+keywords [proc procedure?]) arity+keywords?]{
-returns an @racket[arity+keywords] instance representing the arity and keyword-arity of @racket[proc].  
+returns an @racket[arity+keywords] instance representing the arity and keyword-arity of @racket[proc].
 
 It is defined like this:
 @(racketblock
@@ -90,12 +102,13 @@ It is defined like this:
   (define proc void)
   (procedure-arity+keywords proc)
   (procedure-arity+keywords (procedure-reduce-arity proc 5))
-  (procedure-arity+keywords (procedure-reduce-keyword-arity/sort proc 3 '(#:kw #:other-kw) '(#:kw #:other-kw #:optional-kw)))
+  (procedure-arity+keywords
+   (procedure-reduce-keyword-arity/sort proc 3 '(#:kw #:other-kw) '(#:kw #:other-kw #:optional-kw)))
 ]}
 
 @defproc[(procedure-reduce-arity+keywords [proc procedure?] [arity+kws arity+keywords?]) procedure?]{
-like @racket[procedure-reduce-arity], except that it accepts an @racket[arity+keywords] and handles the keyword-arity as well.
-It uses @racket[procedure-reduce-keyword-arity/sort] to do this.
+like @racket[procedure-reduce-arity], except that it accepts an @racket[arity+keywords] and handles
+the keyword-arity as well.  It uses @racket[procedure-reduce-keyword-arity/sort] to do this.
 
 It is defined like this:
 @(racketblock
@@ -113,7 +126,9 @@ It is defined like this:
   (procedure-arity proc)
   (procedure-keywords proc)
   (define proc-with-arity
-    (procedure-reduce-arity+keywords proc (arity+keywords 5 '(#:kw #:other-kw) '(#:kw #:other-kw #:optional-kw))))
+    (procedure-reduce-arity+keywords
+     proc
+     (arity+keywords 5 '(#:kw #:other-kw) '(#:kw #:other-kw #:optional-kw))))
   (procedure-arity proc-with-arity)
   (procedure-keywords proc-with-arity)
 ]}

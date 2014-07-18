@@ -8,15 +8,14 @@
          racket/contract
          (for-syntax syntax/parse))
 
-(require "../hash-lambda.rkt"
-         "keyword-lambda.rkt")
+(require hash-lambda
+         keyword-lambda)
 
 (module+ test
   (require rackunit))
 
 (begin-for-syntax
-  (define-syntax-class kw
-    (pattern kw:keyword))
+  (define-syntax kw (make-rename-transformer #'keyword))
   (define-syntax-class kw-formals-maybe-defaults
     (pattern rest-id:id)
     (pattern (arg:arg-maybe-default ...))
@@ -67,7 +66,10 @@
   (lambda (stx)
     (syntax-parse stx
                   [(keyword-case-lambda) #'(case-lambda)]
-                  [(keyword-case-lambda [(~or (~literal _) (~literal else)) maybe-when:maybe-when body:expr ...+] clause ...)
+                  [(keyword-case-lambda [(~or (~literal _) (~literal else))
+                                         maybe-when:maybe-when
+                                         body:expr ...+]
+                                        clause ...)
                    #'(local [(define else-proc (keyword-case-lambda clause ...))]
                        (keyword-lambda (kws kw-args . rest-args)
                                        (cond [maybe-when.condition body ...]
@@ -81,13 +83,19 @@
                                                                   kws kw-args rest-args)])))]
                   [(keyword-case-lambda [#:unless condition:expr body:expr ...+] clause ...)
                    #'(keyword-case-lambda [#:when (not condition) body ...] clause ...)]
-                  [(keyword-case-lambda [#:args-hash args-hash:expr maybe-when:maybe-when body:expr ...+] clause ...)
+                  [(keyword-case-lambda [#:args-hash args-hash:expr maybe-when:maybe-when
+                                                     body:expr ...+]
+                                        clause ...)
                    #'(local [(define else-proc (keyword-case-lambda clause ...))]
                        (hash-lambda/match
                         [args-hash #:when maybe-when.condition body ...]
                         [args-hash_0
                          (apply/hash else-proc args-hash_0)]))]
-                  [(keyword-case-lambda [#:kws kws-pat:expr #:kw-args kw-args-pat:expr #:rest rest-args-pat:expr maybe-when:maybe-when body:expr ...+] clause ...)
+                  [(keyword-case-lambda [#:kws kws-pat:expr #:kw-args kw-args-pat:expr
+                                               #:rest rest-args-pat:expr
+                                               maybe-when:maybe-when
+                                               body:expr ...+]
+                                        clause ...)
                    #'(local [(define else-proc (keyword-case-lambda clause ...))]
                        (keyword-lambda (kws kw-args . rest-args)
                                        (match (list kws kw-args rest-args)
@@ -96,9 +104,15 @@
                                           body ...]
                                          [_ (keyword-apply else-proc
                                                            kws kw-args rest-args)])))]
-                  [(keyword-case-lambda [#:rest args-list:expr maybe-when:maybe-when body:expr ...+] clause ...)
-                   #'(keyword-case-lambda [#:kws '() #:kw-args '() #:rest args-list #:when maybe-when.condition body ...] clause ...)]
-                  [(keyword-case-lambda [kwfs:kw-formals-maybe-defaults maybe-when:maybe-when body:expr ...+] clause ...)
+                  [(keyword-case-lambda [#:rest args-list:expr maybe-when:maybe-when body:expr ...+]
+                                        clause ...)
+                   #'(keyword-case-lambda [#:kws '() #:kw-args '() #:rest args-list
+                                                 #:when maybe-when.condition
+                                                 body ...]
+                                          clause ...)]
+                  [(keyword-case-lambda [kwfs:kw-formals-maybe-defaults maybe-when:maybe-when
+                                                                        body:expr ...+]
+                                        clause ...)
                    (with-syntax ([kwfms-with-same-arity (kwfms-replace-defaults #'kwfs)])
                      #'(local [(define proc-with-same-arity
                                  (lambda kwfms-with-same-arity #f))
@@ -107,12 +121,16 @@
                                (define else-arity (procedure-arity+keywords else-proc))]
                          (procedure-reduce-arity+keywords
                           (keyword-lambda (kws kw-args . rest-args)
-                                          (cond [(arity+keywords-matches? first-arity (length rest-args) kws)
-                                                 (keyword-apply (lambda kwfs
-                                                                  (cond [maybe-when.condition body ...]
-                                                                        [else (keyword-apply (keyword-case-lambda clause ...)
-                                                                                             kws kw-args rest-args)]))
-                                                                kws kw-args rest-args)]
+                                          (cond [(arity+keywords-matches? first-arity
+                                                                          (length rest-args) kws)
+                                                 (keyword-apply
+                                                  (lambda kwfs
+                                                    (cond [maybe-when.condition body ...]
+                                                          [else (keyword-apply (keyword-case-lambda
+                                                                                clause ...)
+                                                                               kws kw-args
+                                                                               rest-args)]))
+                                                  kws kw-args rest-args)]
                                                 [else (keyword-apply (keyword-case-lambda clause ...)
                                                                      kws kw-args rest-args)]))
                           (arity+keywords-combine first-arity else-arity))))]
