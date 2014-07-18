@@ -1,4 +1,4 @@
 #lang info
 
-;(define scribblings '(["docs/mutable-match-lambda.scrbl" ()]
-;                      ))
+(define scribblings '(;["docs/mutable-match-lambda.scrbl" ()]
+                      ))
