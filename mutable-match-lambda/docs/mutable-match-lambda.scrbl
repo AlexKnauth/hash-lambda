@@ -1,8 +1,8 @@
-#lang scribble/doc @(require scribble/manual)
+#lang scribble/manual
 @(require scribble/eval racket/sandbox)
 @(require racket/base)
-@(require hash-lambda)
-@(require (for-label hash-lambda
+@(require mutable-match-lambda)
+@(require (for-label mutable-match-lambda
                      racket/base
                      racket/match
                      racket/format
@@ -11,12 +11,13 @@
                      racket/list
                      racket/function
                      racket/bool
-                     racket/math))
+                     racket/math
+                     racket/vector))
 @(define (make-hash-lambda-evaluator)
    (parameterize ([sandbox-namespace-specs (list make-base-namespace)]
                   [sandbox-output 'string]
                   [sandbox-error-output 'string])
-     (make-evaluator '(begin (require hash-lambda
+     (make-evaluator '(begin (require mutable-match-lambda
                                       racket/match
                                       racket/format
                                       racket/local
@@ -24,11 +25,12 @@
                                       racket/list
                                       racket/function
                                       racket/bool
-                                      racket/math)))))
+                                      racket/math
+                                      racket/vector)))))
 
 @title{mutable-match-lambda}
 
-@defmodule[hash-lambda/mutable-match-lambda #:packages ("hash-lambda")]{
+@defmodule[mutable-match-lambda #:packages ("hash-lambda")]{
 
 These functions allow a mutable generic procedure like this:
 
