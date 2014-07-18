@@ -99,7 +99,7 @@ It is defined like this:
 @examples[
   #:eval
   (make-hash-lambda-evaluator)
-  (define proc void)
+  (define proc (make-keyword-procedure void))
   (procedure-arity+keywords proc)
   (procedure-arity+keywords (procedure-reduce-arity proc 5))
   (procedure-arity+keywords
@@ -122,7 +122,7 @@ It is defined like this:
 @examples[
   #:eval
   (make-hash-lambda-evaluator)
-  (define proc void)
+  (define proc (make-keyword-procedure void))
   (procedure-arity proc)
   (procedure-keywords proc)
   (define proc-with-arity
