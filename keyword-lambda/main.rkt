@@ -62,7 +62,16 @@
    (and allowed-kws
         (sort allowed-kws keyword<?))))
 
-(struct arity+keywords (arity required-kws allowed-kws) #:transparent)
+(struct arity+keywords (arity required-kws allowed-kws) #:transparent
+  #:guard (lambda (arity required-kws allowed-kws _)
+            (define new-required-kws
+              (sort required-kws keyword<?))
+            (define new-allowed-kws
+              (cond [(list? allowed-kws)
+                     (sort (remove-duplicates (append new-required-kws allowed-kws))
+                           keyword<?)]
+                    [else #f]))
+            (values arity new-required-kws new-allowed-kws)))
 
 (define (procedure-arity+keywords proc)
   (define arity (procedure-arity proc))
@@ -71,7 +80,7 @@
   (arity+keywords arity req-kws allowed-kws))
 
 (define (procedure-reduce-arity+keywords proc a)
-  (procedure-reduce-keyword-arity/sort
+  (procedure-reduce-keyword-arity
    proc
    (arity+keywords-arity a)
    (arity+keywords-required-kws a)

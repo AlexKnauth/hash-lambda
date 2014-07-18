@@ -83,6 +83,10 @@ The @racket[arity] field represents the arity produced by @racket[procedure-arit
 
 The next 2 fields (@racket[required-kws] and @racket[allowed-kws]) represent the 2 values produced by
 @racket[procedure-keywords].  
+
+A @racket[#f] value for @racket[allowed-kws] means that it accepts all keywords.
+
+The guard procedure also sorts the keyword lists for you.
 }
 
 @defproc[(procedure-arity+keywords [proc procedure?]) arity+keywords?]{
@@ -108,12 +112,12 @@ It is defined like this:
 
 @defproc[(procedure-reduce-arity+keywords [proc procedure?] [arity+kws arity+keywords?]) procedure?]{
 like @racket[procedure-reduce-arity], except that it accepts an @racket[arity+keywords] and handles
-the keyword-arity as well.  It uses @racket[procedure-reduce-keyword-arity/sort] to do this.
+the keyword-arity as well.  
 
 It is defined like this:
 @(racketblock
   (define (procedure-reduce-arity+keywords proc a)
-    (procedure-reduce-keyword-arity/sort
+    (procedure-reduce-keyword-arity
      proc
      (arity+keywords-arity a)
      (arity+keywords-required-kws a)
