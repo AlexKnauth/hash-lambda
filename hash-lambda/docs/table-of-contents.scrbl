@@ -6,6 +6,6 @@
 
 @local-table-of-contents[]
   
-@include-section["hash-lambda.scrbl"]
+@;include-section["hash-lambda.scrbl"]
 
-@include-section["misc.scrbl"]
+@;include-section["misc.scrbl"]
