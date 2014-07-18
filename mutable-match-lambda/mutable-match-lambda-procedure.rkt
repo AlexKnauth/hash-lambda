@@ -5,19 +5,19 @@
          mutable-match-lambda-append
          mutable-match-lambda-add-clause!
          mutable-match-lambda-add-overriding-clause!
-         (all-from-out "make-clause-proc.rkt")
+         (all-from-out mutable-match-lambda/make-clause-proc)
          )
 
 
 
 (require (for-syntax
-          syntax/parse))
-(require "make-clause-proc.rkt"
-         "../keyword-lambda.rkt")
+          syntax/parse
+          (for-syntax racket/base)))
+(require mutable-match-lambda/make-clause-proc
+         keyword-lambda)
 
 (begin-for-syntax
-  (define-syntax-class kw
-    (pattern kw:keyword)))
+  (define-syntax kw (make-rename-transformer #'keyword)))
 
 (define (make-mutable-match-lambda . procs)
   (mutable-match-lambda-procedure procs)) 

@@ -1,16 +1,16 @@
 #lang racket/base
 
 (provide (all-from-out
-          "mutable-match-lambda/mutable-match-lambda-procedure.rkt"
-          "mutable-match-lambda/make-clause-proc.rkt")
+          mutable-match-lambda/mutable-match-lambda-procedure
+          mutable-match-lambda/make-clause-proc)
          mutable-case-lambda
          mutable-hash-lambda/match
          mutable-match-lambda
          mutable-match-lambda*
          )
 
-(require "mutable-match-lambda/mutable-match-lambda-procedure.rkt"
-         "mutable-match-lambda/make-clause-proc.rkt")
+(require mutable-match-lambda/mutable-match-lambda-procedure
+         mutable-match-lambda/make-clause-proc)
 
 (module+ test
   (require rackunit)

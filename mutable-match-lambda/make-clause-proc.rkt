@@ -9,9 +9,9 @@
 
 (require racket/match)
 
-(require (for-syntax "../syntax-to-string.rkt"))
+(require (for-syntax mutable-match-lambda/syntax-to-string))
 
-(require "../../hash-lambda.rkt")
+(require hash-lambda)
 
 (define (make-clause-proc test proc)
   (procedure-rename

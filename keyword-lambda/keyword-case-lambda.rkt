@@ -6,7 +6,9 @@
          racket/math
          racket/match
          racket/contract
-         (for-syntax syntax/parse))
+         (for-syntax racket/base
+                     syntax/parse
+                     (for-syntax racket/base)))
 
 (require hash-lambda
          keyword-lambda)

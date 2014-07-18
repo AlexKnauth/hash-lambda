@@ -25,7 +25,8 @@
          racket/list
          racket/math)
 
-(require (for-syntax racket/base syntax/parse racket/list))
+(require (for-syntax racket/base syntax/parse racket/list
+                     (for-syntax racket/base)))
 
 (module+ test
   (require rackunit))
