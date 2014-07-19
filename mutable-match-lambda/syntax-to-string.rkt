@@ -109,7 +109,15 @@
 (module+ test
   (require rackunit)
   
-  (check-equal? (syntax->string #'(cond [this that] [else this])) "(cond [this that] [else this])")
+  (define (paren-shape stx shape)
+    (syntax-property stx 'paren-shape shape))
+  (define ps paren-shape)
+  (define-syntax-rule (|(| expr) #`expr)
+  (define-syntax-rule (|[| expr) (ps #`expr #\[))
+  (define-syntax-rule (|{| expr) (ps #`expr #\{))
+  
+  (check-equal? (syntax->string #`(cond #,(ps #'[this that] #\[) #,(ps #'[else this] #\[)))
+                "(cond [this that] [else this])")
   
   (check-equal? (syntax->string #'this) "this")
   (check-equal? (syntax->string #'5) "5")
@@ -121,20 +129,20 @@
   (check-equal? (syntax->string (syntax #f)) "#f")
   
   (check-equal? (syntax->string #'(this that)) "(this that)")
-  (check-equal? (syntax->string #'[this that]) "[this that]")
-  (check-equal? (syntax->string #'{this that}) "{this that}")
+  (check-equal? (syntax->string (ps #'[this that] #\[)) "[this that]")
+  (check-equal? (syntax->string (ps #'{this that} #\{)) "{this that}")
   
   (check-equal? (syntax->string #'(this . that)) "(this . that)")
-  (check-equal? (syntax->string #'[this . that]) "[this . that]")
-  (check-equal? (syntax->string #'{this . that}) "{this . that}")
+  (check-equal? (syntax->string (ps #'[this . that] #\[)) "[this . that]")
+  (check-equal? (syntax->string (ps #'{this . that} #\{)) "{this . that}")
   
   (check-equal? (syntax->string #'(this this . that)) "(this this . that)")
-  (check-equal? (syntax->string #'[this this . that]) "[this this . that]")
-  (check-equal? (syntax->string #'{this this . that}) "{this this . that}")
+  (check-equal? (syntax->string (ps #'[this this . that] #\[)) "[this this . that]")
+  (check-equal? (syntax->string (ps #'{this this . that} #\{)) "{this this . that}")
   
   (check-equal? (syntax->string (syntax #(this that))) "#(this that)")
-  (check-equal? (syntax->string (syntax #[this that])) "#[this that]")
-  (check-equal? (syntax->string (syntax #{this that})) "#{this that}")
+  (check-equal? (syntax->string (ps (syntax #[this that]) #\[)) "#[this that]")
+  (check-equal? (syntax->string (ps (syntax #{this that}) #\{)) "#{this that}")
   
   (check-equal? (syntax->string (syntax #&this)) "#&this")
   
