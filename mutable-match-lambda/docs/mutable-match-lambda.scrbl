@@ -2,7 +2,8 @@
 @(require scribble/eval racket/sandbox)
 @(require racket/base)
 @(require mutable-match-lambda)
-@(require (for-label mutable-match-lambda
+@(require (for-label hash-lambda
+                     mutable-match-lambda
                      racket/base
                      racket/match
                      racket/format
@@ -40,8 +41,6 @@ These functions allow a mutable generic procedure like this:
   (define my+ (mutable-match-lambda))
   (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? number? ns) ...) (apply + ns)])
   (my+ 1 2)
-  (define (vector-map f . vs)
-    (list->vector (apply map f (map vector->list vs))))
   (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? vector? vs) ...) (apply vector-map + vs)])
   (my+ #(1 2) #(3 4))
 ]}
@@ -106,7 +105,7 @@ The second form (for both) converts the @racket[clause]s to procedures (using @r
 and then adds those to the list of procs.  
 The difference between them is the same as the difference between
 @racket[mutable-match-lambda-add-clause-proc!] and
-@racket[mutable-match-lambd-add-overriding-clause-proc!].  
+@racket[mutable-match-lambda-add-overriding-clause-proc!].  
 
 @examples[
   #:eval
@@ -114,24 +113,27 @@ The difference between them is the same as the difference between
   (define my+ (make-mutable-match-lambda))
   (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? number? ns) ...) (apply + ns)])
   (my+ 1 2)
-  (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? vector? vs) ...) (apply vector-map + vs)])
+  (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? vector? vs) ...+) (apply vector-map + vs)])
   (my+ #(1 2) #(3 4))
-  (mutable-match-lambda-add-clause! my+ (lambda args 5))
+  (mutable-match-lambda-add-clause! my+ (lambda args 7))
   (my+ 1 2)
   (my+ #(1 2) #(3 4))
   (my+ "not a number or a vector")
-  (mutable-match-lambda-add-overriding-clause! my+ (lambda args 7))
+  (mutable-match-lambda-add-overriding-clause! my+ (lambda args 42))
   (my+ 1 2)
 ]}
-
-@defproc[(mutable-match-lambda-append [proc procedure?] ...) mutable-match-lambda-procedure?]{
-makes a new @racket[mutable-match-lambda-procedure] that has tries all of the @racket[proc]s in order.
-}
 
 @defproc[(mutable-match-lambda-clause-append [proc procedure?] ...) procedure?]{
 makes a new procedure that has tries all of the @racket[proc]s in order.
 
 This is what @racket[mutable-match-lambda-procedure] uses to combine its clauses.  
+}
+
+@defproc[(mutable-match-lambda-append [proc procedure?] ...) mutable-match-lambda-procedure?]{
+makes a new @racket[mutable-match-lambda-procedure] that has tries all of the @racket[proc]s in order.
+
+The difference between this and @racket[make-mutable-match-lambda] is that if a @racket[proc] is a
+@racket[mutable-match-lambda-procedure], then its procs are spliced into the resulting list.  
 }
 
 @section{mutable-match-lambda, etc}
@@ -215,17 +217,15 @@ makes a procedure that @racket[mutable-match-lambda-procedure] can use as a clau
 When it is called, it calls @racket[test-proc] with it's arguments, 
 and if @racket[test-proc] returns a true value, it then calls @racket[then-proc] with it's arguments.  
 If @racket[test-proc] returns @racket[#false], then it raises an exeption that is caught by 
-@racket[mutable-match-lambda-procedure] (or @racket[mutable-match-lambda-append]) so that it moves on to the next clause.  
+@racket[mutable-match-lambda-procedure] (or @racket[mutable-match-lambda-clause-append]) so that it moves on to the next clause.  
 
 @examples[
   #:eval
   (make-hash-lambda-evaluator)
-  (define clause-1 (make-clause-proc (lambda args (andmap number? args))
-                                     (lambda args (apply + args))))
-  (define (vector-map f . vs)
-    (list->vector (apply map f (map vector->list vs))))
-  (define clause-2 (make-clause-proc (lambda args (andmap vector? args))
-                                     (lambda args (apply vector-map + args))))
+  (define clause-1 (make-clause-proc (λ args (andmap number? args))
+                                     (λ args (apply + args))))
+  (define clause-2 (make-clause-proc (λ args (andmap vector? args))
+                                     (λ args (apply vector-map + args))))
   (define my+
     (make-mutable-match-lambda clause-1 clause-2))
   (my+ 1 2)
@@ -242,7 +242,7 @@ If @racket[test-proc] returns @racket[#false], then it raises an exeption that i
            (clause->proc #:match-lambda* match-lambda*-clause))]{
 makes a procedure that @racket[mutable-match-lambda-procedure] can use as a clause-proc
 The keyword specifies what type of clause it is.  If the clause fails to match, it raises an exeption that is caught by
-@racket[mutable-match-lambda-procedure] (or @racket[mutable-match-lambda-append]) so that it moves on to the next clause.  
+@racket[mutable-match-lambda-procedure] (or @racket[mutable-match-lambda-clause-append]) so that it moves on to the next clause.  
 
 @examples[
   #:eval
