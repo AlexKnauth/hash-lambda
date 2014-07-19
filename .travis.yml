@@ -5,9 +5,11 @@ env:
  - RACKET_VERSION=HEAD
 
 before_install:
+- ls
+- cd ..
+- ls
 - git clone https://github.com/greghendershott/travis-racket.git
 - cat travis-racket/install-racket.sh | bash # pipe to bash not sh!
-- ls
 
 install:
 
