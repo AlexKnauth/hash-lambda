@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@title[#:style '(toc)]{hash-lambda pkg}
+@title[#:style '(toc) #:tag "table-of-contents.scrbl"]{hash-lambda}
 
 @defmodule[hash-lambda/all]
 
