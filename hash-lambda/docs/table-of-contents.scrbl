@@ -1,12 +1,10 @@
 #lang scribble/manual
 
-@title[#:style '(toc)]{hash-lambda }
+@title[#:style '(toc)]{hash-lambda pkg}
 
 @defmodule[hash-lambda/all]
 
 @local-table-of-contents[]
-
-Text.
 
 @include-section[(lib "hash-lambda/docs/hash-lambda.scrbl")]
 
