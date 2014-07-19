@@ -6,7 +6,7 @@
 
 @local-table-of-contents[]
 
-
+Text.
 
 @include-section[(lib "hash-lambda/docs/hash-lambda.scrbl")]
 

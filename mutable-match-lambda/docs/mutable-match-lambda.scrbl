@@ -62,7 +62,7 @@ equivalent to @racket[(mutable-match-lambda-procedure (list proc ...))].
 @deftogether[(@defproc[(mutable-match-lambda-add-clause-proc! [proc mutable-match-lambda-procedure?] [clause-proc procedure?] ...) void?]
               @defproc[(mutable-match-lambda-add-overriding-clause-proc! [proc mutable-match-lambda-procedure?] [clause-proc procedure?] ...) void?])]{
 these functions add clauses to a @racket[mutable-match-lambda-procedure].  
-The difference between them is that @racket[mutable-match-lambda-procedure-add-clause-proc!] adds a clause that is only used when no other clause matches,
+The difference between them is that @racket[mutable-match-lambda-add-clause-proc!] adds a clause that is only used when no other clause matches,
 and @racket[mutable-match-lambda-add-overriding-clause-proc!] adds a clause that overrides the other clauses when it matches.
 
 They are defined like this:
@@ -86,11 +86,11 @@ They are defined like this:
   (my+ 1 2)
   (mutable-match-lambda-add-clause-proc! my+ (clause->proc #:match-lambda* [(list (? vector? vs) ...) (apply vector-map + vs)]))
   (my+ #(1 2) #(3 4))
-  (mutable-match-lambda-add-clause-proc! my+ (lambda args 5))
+  (mutable-match-lambda-add-clause-proc! my+ (lambda args 7))
   (my+ 1 2)
   (my+ #(1 2) #(3 4))
   (my+ "not a number or a vector")
-  (mutable-match-lambda-add-overriding-clause-proc! my+ (lambda args 7))
+  (mutable-match-lambda-add-overriding-clause-proc! my+ (lambda args 42))
   (my+ 1 2)
 ]}
 
@@ -113,7 +113,7 @@ The difference between them is the same as the difference between
   (define my+ (make-mutable-match-lambda))
   (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? number? ns) ...) (apply + ns)])
   (my+ 1 2)
-  (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? vector? vs) ...+) (apply vector-map + vs)])
+  (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? vector? vs) ...) (apply vector-map + vs)])
   (my+ #(1 2) #(3 4))
   (mutable-match-lambda-add-clause! my+ (lambda args 7))
   (my+ 1 2)
@@ -240,7 +240,7 @@ If @racket[test-proc] returns @racket[#false], then it raises an exeption that i
            (clause->proc #:hash-lambda/match hash-lambda/match-clause)
            (clause->proc #:match-lambda match-lambda-clause)
            (clause->proc #:match-lambda* match-lambda*-clause))]{
-makes a procedure that @racket[mutable-match-lambda-procedure] can use as a clause-proc
+makes a procedure that @racket[mutable-match-lambda-procedure] can use as a clause-proc.
 The keyword specifies what type of clause it is.  If the clause fails to match, it raises an exeption that is caught by
 @racket[mutable-match-lambda-procedure] (or @racket[mutable-match-lambda-clause-append]) so that it moves on to the next clause.  
 
