@@ -3,7 +3,7 @@
 (provide make-clause-proc
          clause->proc
          raise-mutable-match-lambda:no-match-error
-         within-mutable-match-lambda-append?
+         within-mutable-match-lambda-clause-append?
          (struct-out exn:fail:mutable-match-lambda:no-match)
          (struct-out exn:fail:mutable-match-lambda:no-match:next-clause))
 
@@ -56,7 +56,7 @@
     (with-handlers ([exn:fail? exn-continuation-marks])
       (error message)))
   (define exn
-    (cond [(within-mutable-match-lambda-append?)
+    (cond [(within-mutable-match-lambda-clause-append?)
            (exn:fail:mutable-match-lambda:no-match:next-clause
             message cont-marks args-hash)]
           [else
@@ -64,7 +64,7 @@
             message cont-marks args-hash)]))
   (raise exn))
 
-(define within-mutable-match-lambda-append?
+(define within-mutable-match-lambda-clause-append?
   (make-parameter #f))
 
 (struct exn:fail:mutable-match-lambda:no-match exn:fail (args) #:transparent)

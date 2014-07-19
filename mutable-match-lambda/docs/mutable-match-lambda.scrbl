@@ -50,7 +50,7 @@ These functions allow a mutable generic procedure like this:
 
 @defstruct*[mutable-match-lambda-procedure ([procs (listof procedure?)]) #:mutable #:transparent]{
 represents a procedure, with a @racket[prop:procedure] property that allows it to be applied as a procedure.
-It tries each of its @racket[procs] in order, using @racket[mutable-match-lambda-append].  
+It tries each of its @racket[procs] in order, using @racket[mutable-match-lambda-clause-append].  
 Forms like @racket[mutable-case-lambda] and @racket[mutable-match-lambda] all create instances of this.  
 When they do, each clause is converted to a procedure (using @racket[clause->proc]) and the list of procedures
 is stored in the @racket[procs] field.  
@@ -60,11 +60,11 @@ is stored in the @racket[procs] field.
 equivalent to @racket[(mutable-match-lambda-procedure (list proc ...))].
 }
 
-@deftogether[(@defproc[(mutable-match-lambda-procedure-add-clause-proc! [proc mutable-match-lambda-procedure?] [clause-proc procedure?] ...) void?]
-              @defproc[(mutable-match-lambda-procedure-add-overriding-clause-proc! [proc mutable-match-lambda-procedure?] [clause-proc procedure?] ...) void?])]{
+@deftogether[(@defproc[(mutable-match-lambda-add-clause-proc! [proc mutable-match-lambda-procedure?] [clause-proc procedure?] ...) void?]
+              @defproc[(mutable-match-lambda-add-overriding-clause-proc! [proc mutable-match-lambda-procedure?] [clause-proc procedure?] ...) void?])]{
 these functions add clauses to a @racket[mutable-match-lambda-procedure].  
 The difference between them is that @racket[mutable-match-lambda-procedure-add-clause-proc!] adds a clause that is only used when no other clause matches,
-and @racket[mutable-match-lambda-procedure-add-overriding-clause-proc!] adds a clause that overrides the other clauses when it matches.
+and @racket[mutable-match-lambda-add-overriding-clause-proc!] adds a clause that overrides the other clauses when it matches.
 
 They are defined like this:
 @(racketblock
@@ -85,8 +85,6 @@ They are defined like this:
   (define my+ (make-mutable-match-lambda))
   (mutable-match-lambda-add-clause-proc! my+ (clause->proc #:match-lambda* [(list (? number? ns) ...) (apply + ns)]))
   (my+ 1 2)
-  (define (vector-map f . vs)
-    (list->vector (apply map f (map vector->list vs))))
   (mutable-match-lambda-add-clause-proc! my+ (clause->proc #:match-lambda* [(list (? vector? vs) ...) (apply vector-map + vs)]))
   (my+ #(1 2) #(3 4))
   (mutable-match-lambda-add-clause-proc! my+ (lambda args 5))
@@ -97,18 +95,18 @@ They are defined like this:
   (my+ 1 2)
 ]}
 
-@deftogether[(@defform*[((mutable-match-lambda-procedure-add-clause! proc-expr clause-proc-expr ...)
-                         (mutable-match-lambda-procedure-add-clause! proc-expr kw clause ...))]
-              @defform*[((mutable-match-lambda-procedure-add-overriding-clause! proc-expr clause-proc-expr ...)
-                         (mutable-match-lambda-procedure-add-overriding-clause! proc-expr kw clause ...))])]{
+@deftogether[(@defform*[((mutable-match-lambda-add-clause! proc-expr clause-proc-expr ...)
+                         (mutable-match-lambda-add-clause! proc-expr kw clause ...))]
+              @defform*[((mutable-match-lambda-add-overriding-clause! proc-expr clause-proc-expr ...)
+                         (mutable-match-lambda-add-overriding-clause! proc-expr kw clause ...))])]{
 these forms add clauses to a @racket[mutable-match-lambda-procedure].  
 The first form (for both) adds the @racket[clause-proc-expr]s to the list of procs, and is
-exactly like @racket[mutable-match-lambda-procedure-add-clause-proc!] and @racket[mutable-match-lambda-procedure-add-overriding-clause-proc!].  
+exactly like @racket[mutable-match-lambda-add-clause-proc!] and @racket[mutable-match-lambda-add-overriding-clause-proc!].  
 The second form (for both) converts the @racket[clause]s to procedures (using @racket[(clause->proc kw clause)]),
 and then adds those to the list of procs.  
 The difference between them is the same as the difference between
-@racket[mutable-match-lambda-procedure-add-clause-proc!] and
-@racket[mutable-match-lambda-procedure-add-overriding-clause-proc!].  
+@racket[mutable-match-lambda-add-clause-proc!] and
+@racket[mutable-match-lambd-add-overriding-clause-proc!].  
 
 @examples[
   #:eval
@@ -116,8 +114,6 @@ The difference between them is the same as the difference between
   (define my+ (make-mutable-match-lambda))
   (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? number? ns) ...) (apply + ns)])
   (my+ 1 2)
-  (define (vector-map f . vs)
-    (list->vector (apply map f (map vector->list vs))))
   (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? vector? vs) ...) (apply vector-map + vs)])
   (my+ #(1 2) #(3 4))
   (mutable-match-lambda-add-clause! my+ (lambda args 5))
@@ -127,6 +123,16 @@ The difference between them is the same as the difference between
   (mutable-match-lambda-add-overriding-clause! my+ (lambda args 7))
   (my+ 1 2)
 ]}
+
+@defproc[(mutable-match-lambda-append [proc procedure?] ...) mutable-match-lambda-procedure?]{
+makes a new @racket[mutable-match-lambda-procedure] that has tries all of the @racket[proc]s in order.
+}
+
+@defproc[(mutable-match-lambda-clause-append [proc procedure?] ...) procedure?]{
+makes a new procedure that has tries all of the @racket[proc]s in order.
+
+This is what @racket[mutable-match-lambda-procedure] uses to combine its clauses.  
+}
 
 @section{mutable-match-lambda, etc}
 
