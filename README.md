@@ -9,7 +9,7 @@ hash-lambda/match and use match patterns for the arguments.
 You can also use apply/hash to apply an args-hash to a function.
 
 Examples:
-
+```racket
     > (require racket hash-lambda)
     > (define my+
         (hash-lambda/match
@@ -23,4 +23,4 @@ Examples:
           (* 1/2 mass (sqr velocity))]))
     > (kinetic-energy #:mass 2 #:velocity 1)
     1
-
+```
