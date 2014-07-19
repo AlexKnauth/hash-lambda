@@ -28,7 +28,7 @@
 
 @;displayln{starting}
 
-@title{hash-lambda}
+@title[#:tag "hash-lambda.scrbl"]{hash-lambda}
 
 @defmodule[hash-lambda #:packages ("hash-lambda")]{
 
@@ -58,7 +58,7 @@ and @racket[(hash-ref args-hash '#:<kw>)], etc. to access keyword arguments, or 
 
 @;displayln{hash-lambda}
 
-@section{hash-lambda}
+@section[#:tag "hash-lambda section"]{hash-lambda}
 
 @defform*[((hash-lambda args-hash-id body ...+)
            (hash-lambda [args-hash-id args-hash-contract] body ...+))]{
