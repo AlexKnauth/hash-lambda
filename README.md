@@ -10,17 +10,17 @@ You can also use apply/hash to apply an args-hash to a function.
 
 Examples:
 ```racket
-    > (require racket hash-lambda)
-    > (define my+
-        (hash-lambda/match
-         [(hash-table [0 a] [1 b])
-          (+ a b)]))
-    > (my+ 1 2)
-    3
-    > (define/contract kinetic-energy (#:mass number? #:velocity number? . -> . number?)
-        (hash-lambda/match
-         [(hash-table ['#:mass mass] ['#:velocity velocity])
-          (* 1/2 mass (sqr velocity))]))
-    > (kinetic-energy #:mass 2 #:velocity 1)
-    1
+> (require hash-lambda)
+> (define my+
+    (hash-lambda/match
+     [(hash-table [0 a] [1 b])
+      (+ a b)]))
+> (my+ 1 2)
+3
+> (define/contract kinetic-energy (#:mass number? #:velocity number? . -> . number?)
+    (hash-lambda/match
+     [(hash-table ['#:mass mass] ['#:velocity velocity])
+      (* 1/2 mass (sqr velocity))]))
+> (kinetic-energy #:mass 2 #:velocity 1)
+1
 ```
