@@ -1,6 +1,8 @@
 hash-lambda
 ===========
 
+[![Build Status](https://travis-ci.org/AlexKnauth/hash-lambda.png?branch=master)](https://travis-ci.org/AlexKnauth/hash-lambda)
+
 hash-lambdas allow you to create a "rest argument" see Declaring a Rest Argument that includes
 keyword arguments. Instead of storing the arguments in a list, hash-lambda stores them in a
 hash table, where you can use (hash-ref args-hash 0), etc. to access by-position arguments,
