@@ -33,7 +33,7 @@
 @section{keyword-lambda, keyword-apply/sort, and procedure-reduce-keyword-arity/sort}
 
 @defform[(keyword-lambda (kws kw-args . rest-args) body ...)]{
-equivalent to
+roughly equivalent to
 @(racketblock
   (make-keyword-procedure
    (lambda (kws kw-args . rest-args) body ...))

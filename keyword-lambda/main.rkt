@@ -30,15 +30,15 @@
               (with-syntax ([name name])
                 #'(make-keyword-procedure
                    (lambda (kws kw-args . rest-args) body ...)
-                   (let* ([kws '()]
-                          [kw-args '()]
-                          [name (lambda rest-args body ...)])
+                   (let ([name (lambda rest-args
+                                 (let ([kws '()] [kw-args '()])
+                                   body ...))])
                      name)))]
              [else #'(make-keyword-procedure
                         (lambda (kws kw-args . rest-args) body ...)
-                        (let* ([kws '()]
-                               [kw-args '()])
-                          (lambda rest-args body ...)))])])))
+                        (lambda rest-args
+                          (let ([kws '()] [kw-args '()])
+                            body ...)))])])))
 
 (module+ test
   (local [(define proc
