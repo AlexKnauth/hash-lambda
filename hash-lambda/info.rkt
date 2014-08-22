@@ -1,5 +1,4 @@
 #lang info
 
-(define scribblings '(["docs/table-of-contents.scrbl" (multi-page)]
-                      ;["docs/hash-lambda.scrbl" ()]
-                      ))
+(define scribblings '(["docs/hash-lambda-toc.scrbl" (multi-page)]))
+
