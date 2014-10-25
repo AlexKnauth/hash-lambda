@@ -1,24 +1,18 @@
-#lang racket/base (require (for-syntax racket/base))
+#lang racket/base
 
 (provide (struct-out mutable-match-lambda-procedure)
          make-mutable-match-lambda
-         mutable-match-lambda-clause-append
          mutable-match-lambda-append
-         mutable-match-lambda-add-clause!
-         mutable-match-lambda-add-overriding-clause!
          mutable-match-lambda-add-clause-proc!
          mutable-match-lambda-add-overriding-clause-proc!
-         (all-from-out mutable-match-lambda/make-clause-proc)
          )
 
-
-
 (require racket/list
-         (for-syntax
-          syntax/parse
-          (for-syntax racket/base)))
-(require mutable-match-lambda/make-clause-proc
-         keyword-lambda)
+         "communication.rkt"
+         keyword-lambda
+         (for-syntax racket/base
+                     syntax/parse
+                     (for-syntax racket/base)))
 
 (begin-for-syntax
   (define-syntax kw (make-rename-transformer #'keyword)))
@@ -43,18 +37,6 @@
 
 
 
-(define mutable-match-lambda-clause-append
-  (case-lambda
-    [() (case-lambda)]
-    [(f) f]
-    [(f1 f2) (keyword-lambda (kws kw-args . args)
-               (with-handlers ([exn:fail:mutable-match-lambda:no-match:next-clause?
-                                (λ (e) (keyword-apply f2 kws kw-args args))])
-                 (parameterize ([within-mutable-match-lambda-clause-append? #t])
-                   (keyword-apply f1 kws kw-args args))))]
-    [(f1 . rst) (mutable-match-lambda-clause-append f1 (apply mutable-match-lambda-clause-append rst))]
-    ))
-
 (define (mutable-match-lambda-append . args)
   (define (proc->procs proc)
     (cond [(mutable-match-lambda-procedure? proc)
@@ -77,26 +59,5 @@
                                              (append clause-procs
                                                      (mutable-match-lambda-procedure-procs proc))))
 
-(define-syntax mutable-match-lambda-add-clause!
-  (lambda (stx)
-    (syntax-parse stx
-      [(mutable-match-lambda-add-clause! proc:expr clause-proc:expr ...)
-       #'(mutable-match-lambda-add-clause-proc! proc clause-proc ...)]
-      [(mutable-match-lambda-add-clause! proc:expr kw:kw clause:expr ...)
-       #'(mutable-match-lambda-add-clause-proc! proc (clause->proc kw clause) ...)]
-      [mutable-match-lambda-add-clause!:id
-       #'mutable-match-lambda-add-clause-proc!]
-      )))
-
-(define-syntax mutable-match-lambda-add-overriding-clause!
-  (lambda (stx)
-    (syntax-parse stx
-      [(mutable-match-lambda-add-overriding-clause! proc:expr clause-proc:expr ...)
-       #'(mutable-match-lambda-add-overriding-clause-proc! proc clause-proc ...)]
-      [(mutable-match-lambda-add-overriding-clause! proc:expr kw:kw clause:expr ...)
-       #'(mutable-match-lambda-add-overriding-clause-proc! proc (clause->proc kw clause) ...)]
-      [mutable-match-lambda-add-overriding-clause!:id
-       #'mutable-match-lambda-add-overriding-clause-proc!]
-      )))
 
 

@@ -1,16 +1,21 @@
 #lang racket/base
 
 (provide (all-from-out
-          mutable-match-lambda/mutable-match-lambda-procedure
-          mutable-match-lambda/make-clause-proc)
+          "mutable-match-lambda-procedure.rkt"
+          "make-clause-proc.rkt")
          mutable-case-lambda
          mutable-hash-lambda/match
          mutable-match-lambda
          mutable-match-lambda*
+         mutable-match-lambda-add-clause!
+         mutable-match-lambda-add-overriding-clause!
          )
 
-(require mutable-match-lambda/mutable-match-lambda-procedure
-         mutable-match-lambda/make-clause-proc)
+(require "mutable-match-lambda-procedure.rkt"
+         "make-clause-proc.rkt"
+         (for-syntax racket/base
+                     syntax/parse
+                     (for-syntax racket/base)))
 
 (module+ test
   (require rackunit)
@@ -37,6 +42,9 @@
   
   )
 
+(begin-for-syntax
+  (define-syntax kw (make-rename-transformer #'keyword)))
+
 (define-syntax-rule (mutable-case-lambda clause ...)
   (make-mutable-match-lambda
    (clause->proc #:case-lambda clause) ...))
@@ -52,4 +60,26 @@
 (define-syntax-rule (mutable-match-lambda* clause ...)
   (make-mutable-match-lambda
    (clause->proc #:match-lambda* clause) ...))
+
+(define-syntax mutable-match-lambda-add-clause!
+  (lambda (stx)
+    (syntax-parse stx
+      [(mutable-match-lambda-add-clause! proc:expr clause-proc:expr ...)
+       #'(mutable-match-lambda-add-clause-proc! proc clause-proc ...)]
+      [(mutable-match-lambda-add-clause! proc:expr kw:kw clause:expr ...)
+       #'(mutable-match-lambda-add-clause-proc! proc (clause->proc kw clause) ...)]
+      [mutable-match-lambda-add-clause!:id
+       #'mutable-match-lambda-add-clause-proc!]
+      )))
+
+(define-syntax mutable-match-lambda-add-overriding-clause!
+  (lambda (stx)
+    (syntax-parse stx
+      [(mutable-match-lambda-add-overriding-clause! proc:expr clause-proc:expr ...)
+       #'(mutable-match-lambda-add-overriding-clause-proc! proc clause-proc ...)]
+      [(mutable-match-lambda-add-overriding-clause! proc:expr kw:kw clause:expr ...)
+       #'(mutable-match-lambda-add-overriding-clause-proc! proc (clause->proc kw clause) ...)]
+      [mutable-match-lambda-add-overriding-clause!:id
+       #'mutable-match-lambda-add-overriding-clause-proc!]
+      )))
 

@@ -1,17 +1,14 @@
-#lang racket/base (require (for-syntax racket/base))
+#lang racket/base
 
 (provide make-clause-proc
          clause->proc
-         raise-mutable-match-lambda:no-match-error
-         within-mutable-match-lambda-clause-append?
-         (struct-out exn:fail:mutable-match-lambda:no-match)
-         (struct-out exn:fail:mutable-match-lambda:no-match:next-clause))
+         )
 
-(require racket/match)
-
-(require (for-syntax mutable-match-lambda/syntax-to-string))
-
-(require hash-lambda)
+(require racket/match
+         hash-lambda
+         "communication.rkt"
+         (for-syntax racket/base
+                     mutable-match-lambda/syntax-to-string))
 
 (define (make-clause-proc test proc)
   (procedure-rename
@@ -46,27 +43,4 @@
 
 (define-syntax-rule (match-lambda*-clause->proc clause)
   (match-lambda* clause [args (raise-mutable-match-lambda:no-match-error (apply make-args-hash args))]))
-
-(define (raise-mutable-match-lambda:no-match-error args-hash)
-  (define message
-    (string-append
-     "my-match-lambda: no clause matches" "\n"
-     "  args-hash: "(args-hash->string args-hash)""))
-  (define cont-marks
-    (with-handlers ([exn:fail? exn-continuation-marks])
-      (error message)))
-  (define exn
-    (cond [(within-mutable-match-lambda-clause-append?)
-           (exn:fail:mutable-match-lambda:no-match:next-clause
-            message cont-marks args-hash)]
-          [else
-           (exn:fail:mutable-match-lambda:no-match
-            message cont-marks args-hash)]))
-  (raise exn))
-
-(define within-mutable-match-lambda-clause-append?
-  (make-parameter #f))
-
-(struct exn:fail:mutable-match-lambda:no-match exn:fail (args) #:transparent)
-(struct exn:fail:mutable-match-lambda:no-match:next-clause exn:fail:mutable-match-lambda:no-match () #:transparent)
 
