@@ -124,13 +124,13 @@ The difference between them is the same as the difference between
 ]}
 
 @defproc[(mutable-match-lambda-clause-append [proc procedure?] ...) procedure?]{
-makes a new procedure that has tries all of the @racket[proc]s in order.
+makes a new procedure that tries all of the @racket[proc]s in order.
 
 This is what @racket[mutable-match-lambda-procedure] uses to combine its clauses.  
 }
 
 @defproc[(mutable-match-lambda-append [proc procedure?] ...) mutable-match-lambda-procedure?]{
-makes a new @racket[mutable-match-lambda-procedure] that has tries all of the @racket[proc]s in order.
+makes a new @racket[mutable-match-lambda-procedure] that tries all of the @racket[proc]s in order.
 
 The difference between this and @racket[make-mutable-match-lambda] is that if a @racket[proc] is a
 @racket[mutable-match-lambda-procedure], then its procs are spliced into the resulting list.  
