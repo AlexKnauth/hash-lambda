@@ -1,45 +1,76 @@
 #lang racket/base
 
 (provide mutable-match-lambda-clause-append
-         raise-mutable-match-lambda:no-match-error
+         mutable-match-lambda-next
          within-mutable-match-lambda-clause-append?
-         (struct-out exn:fail:mutable-match-lambda:no-match)
-         (struct-out exn:fail:mutable-match-lambda:no-match:next-clause))
-         
-(require hash-lambda)
+         )
 
-(define mutable-match-lambda-clause-append
-  (case-lambda
-    [() (case-lambda)]
-    [(f) f]
-    [(f1 f2) (keyword-lambda (kws kw-args . args)
-               (with-handlers ([exn:fail:mutable-match-lambda:no-match:next-clause?
-                                (λ (e) (keyword-apply f2 kws kw-args args))])
-                 (parameterize ([within-mutable-match-lambda-clause-append? #t])
-                   (keyword-apply f1 kws kw-args args))))]
-    [(f1 . rst) (mutable-match-lambda-clause-append f1 (apply mutable-match-lambda-clause-append rst))]
-    ))
+(require racket/list
+         racket/match
+         hash-lambda
+         )
 
-(define (raise-mutable-match-lambda:no-match-error args-hash)
-  (define message
-    (string-append
-     "my-match-lambda: no clause matches" "\n"
-     "  args-hash: "(args-hash->string args-hash)""))
-  (define cont-marks
-    (with-handlers ([exn:fail? exn-continuation-marks])
-      (error message)))
-  (define exn
-    (cond [(within-mutable-match-lambda-clause-append?)
-           (exn:fail:mutable-match-lambda:no-match:next-clause
-            message cont-marks args-hash)]
-          [else
-           (exn:fail:mutable-match-lambda:no-match
-            message cont-marks args-hash)]))
-  (raise exn))
 
-(define within-mutable-match-lambda-clause-append?
+
+(define (mutable-match-lambda-clause-append . orig-fs)
+  (keyword-lambda (kws kw-args . args)
+    (define next (make-next orig-fs kws kw-args args))
+    (parameterize ([current-mutable-match-lambda-next next])
+      (try orig-fs kws kw-args args))))
+
+
+
+(define (try orig-fs kws kw-args args)
+  (let/cc k
+    (define orig-next (current-mutable-match-lambda-next))
+    (define (loop fs)
+      (match fs
+        ['() (orig-next)]
+        [(cons fst rst) (define (next)
+                          (call-with-values (λ () (loop rst)) k))
+                        (parameterize ([current-mutable-match-lambda-next next])
+                          (keyword-apply fst kws kw-args args))]))
+    (loop orig-fs)))
+
+
+
+(define current-mutable-match-lambda-next
   (make-parameter #f))
 
-(struct exn:fail:mutable-match-lambda:no-match exn:fail (args) #:transparent)
-(struct exn:fail:mutable-match-lambda:no-match:next-clause exn:fail:mutable-match-lambda:no-match () #:transparent)
+(define (mutable-match-lambda-next)
+  (let ([next (current-mutable-match-lambda-next)])
+    (cond
+      [next (next)]
+      [else
+       (error 'mutable-match-lambda-next "not within a mutable-match-lambda clause")])))
+
+(define (within-mutable-match-lambda-clause-append?)
+  (if (current-mutable-match-lambda-next) #t #f))
+
+
+
+(define (make-next orig-fs kws kw-args args)
+  (define orig-next (current-mutable-match-lambda-next))
+  (cond [orig-next orig-next]
+        [else (define (next)
+                (error 'mutable-match-lambda
+                       (string-append
+                        "no clause matches" "\n"
+                        "  args: ~a" "\n"
+                        "  clauses: ~v")
+                       (string-append*
+                        (for/list ([arg (in-list args)])
+                          (format "~v " arg))
+                        (for/list ([kw (in-list kws)]
+                                   [kw-arg (in-list kw-args)])
+                          (format "~a ~v " kw kw-arg)))
+                       orig-fs))
+              next]))
+
+
+
+(define (string-append* . args)
+  (apply string-append (flatten args)))
+
+
 

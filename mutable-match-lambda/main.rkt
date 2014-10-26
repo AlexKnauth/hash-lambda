@@ -2,7 +2,8 @@
 
 (provide (all-from-out
           "mutable-match-lambda-procedure.rkt"
-          "make-clause-proc.rkt")
+          "make-clause-proc.rkt"
+          "communication.rkt")
          mutable-case-lambda
          mutable-hash-lambda/match
          mutable-match-lambda
@@ -13,6 +14,7 @@
 
 (require "mutable-match-lambda-procedure.rkt"
          "make-clause-proc.rkt"
+         "communication.rkt"
          (for-syntax racket/base
                      syntax/parse
                      (for-syntax racket/base)))
@@ -21,7 +23,7 @@
   (require rackunit)
   
   (define dup (mutable-match-lambda))
-  (mutable-match-lambda-add-clause! dup (make-clause-proc string?  (lambda (s) (string-append s s))))
+  (mutable-match-lambda-add-clause! dup (make-clause-proc string? (lambda (s) (string-append s s))))
   (mutable-match-lambda-add-clause! dup #:match-lambda* [(list (? integer? n)) (list n n)])
   
   (check-equal? (dup "Hello") "HelloHello")
@@ -34,11 +36,21 @@
   (define (v+ . args) (list->vector (apply map + (map vector->list args))))
   (mutable-match-lambda-add-clause! my+ (make-clause-proc vectors? v+))
   
+  (check-equal? (my+) 0)
   (check-equal? (my+ 1 2 3) 6)
   (check-equal? (my+ #(1 2 3)
                      #(2 3 4)
                      #(3 4 5))
                 #(6 9 12))
+  
+  (define weird (make-mutable-match-lambda dup my+))
+  
+  (check-equal? (weird "Hello") "HelloHello")
+  (check-equal? (weird 10) '(10 10))
+  (check-equal? (weird) 0)
+  (check-equal? (weird #(1 2) #(3 4)) #(4 6))
+  (mutable-match-lambda-add-clause! dup (make-clause-proc list? (λ (lst) (append lst lst))))
+  (check-equal? (weird '(5)) '(5 5))
   
   )
 

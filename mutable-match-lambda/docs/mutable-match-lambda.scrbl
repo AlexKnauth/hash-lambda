@@ -134,6 +134,19 @@ makes a new @racket[mutable-match-lambda-procedure] that has tries all of the @r
 
 The difference between this and @racket[make-mutable-match-lambda] is that if a @racket[proc] is a
 @racket[mutable-match-lambda-procedure], then its procs are spliced into the resulting list.  
+As a result the mutable-match-lambda-procedures are effectively copied (and in fact
+@racket[mutable-match-lambda-copy] is defined with @racket[mutable-match-lambda-append]).
+
+If you don't want this copying behavior, you can use @racket[make-mutable-match-lambda] to achieve
+that.
+}
+
+@defproc[(mutable-match-lambda-copy [proc procedure?]) mutable-match-lambda-procedure?]{
+if @racket[proc] is a @racket[mutable-match-lambda-procedure], it returns a copy of @racket[proc].
+Otherwise it returns a @racket[mutable-match-lambda-procedure] that has @racket[proc] as its only
+clause.
+
+It is equivalent to @racket[(mutable-match-lambda-append proc)].
 }
 
 @section{mutable-match-lambda, etc}
@@ -215,9 +228,8 @@ It is defined like this:
 @defproc[(make-clause-proc [test-proc procedure?] [then-proc procedure?]) procedure?]{
 makes a procedure that @racket[mutable-match-lambda-procedure] can use as a clause-proc.  
 When it is called, it calls @racket[test-proc] with it's arguments, 
-and if @racket[test-proc] returns a true value, it then calls @racket[then-proc] with it's arguments.  
-If @racket[test-proc] returns @racket[#false], then it raises an exeption that is caught by 
-@racket[mutable-match-lambda-procedure] (or @racket[mutable-match-lambda-clause-append]) so that it moves on to the next clause.  
+and if @racket[test-proc] returns a true value, it then calls @racket[then-proc] with its arguments. 
+If @racket[test-proc] returns @racket[#false], then it moves on to the next clause (if there is one). 
 
 @examples[
   #:eval
@@ -232,8 +244,6 @@ If @racket[test-proc] returns @racket[#false], then it raises an exeption that i
   (clause-1 1 2)
   (my+ #(1 2) #(3 4))
   (clause-2 #(1 2) #(3 4))
-  (clause-2 1 2)
-  (clause-1 #(1 2) #(3 4))
 ]}
 
 @defform*[((clause->proc #:case-lambda case-lambda-clause)
@@ -241,8 +251,8 @@ If @racket[test-proc] returns @racket[#false], then it raises an exeption that i
            (clause->proc #:match-lambda match-lambda-clause)
            (clause->proc #:match-lambda* match-lambda*-clause))]{
 makes a procedure that @racket[mutable-match-lambda-procedure] can use as a clause-proc.
-The keyword specifies what type of clause it is.  If the clause fails to match, it raises an exeption that is caught by
-@racket[mutable-match-lambda-procedure] (or @racket[mutable-match-lambda-clause-append]) so that it moves on to the next clause.  
+The keyword specifies what type of clause it is.  If the clause fails to match, it moves on to the
+next clause (if there is one).  
 
 @examples[
   #:eval

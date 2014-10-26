@@ -3,13 +3,14 @@
 (provide (struct-out mutable-match-lambda-procedure)
          make-mutable-match-lambda
          mutable-match-lambda-append
+         mutable-match-lambda-copy
          mutable-match-lambda-add-clause-proc!
          mutable-match-lambda-add-overriding-clause-proc!
          )
 
 (require racket/list
-         "communication.rkt"
          keyword-lambda
+         (only-in "communication.rkt" mutable-match-lambda-clause-append)
          (for-syntax racket/base
                      syntax/parse
                      (for-syntax racket/base)))
@@ -47,6 +48,9 @@
     (append*
      (map proc->procs args)))
   (mutable-match-lambda-procedure procs))
+
+(define (mutable-match-lambda-copy f)
+  (mutable-match-lambda-append f))
 
 
 (define (mutable-match-lambda-add-clause-proc! proc . clause-procs)

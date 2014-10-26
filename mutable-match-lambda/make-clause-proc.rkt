@@ -6,7 +6,7 @@
 
 (require racket/match
          hash-lambda
-         "communication.rkt"
+         (only-in "communication.rkt" mutable-match-lambda-next)
          (for-syntax racket/base
                      mutable-match-lambda/syntax-to-string))
 
@@ -17,7 +17,7 @@
                  (keyword-apply test kws kw-args rest-args))
             (keyword-apply proc kws kw-args rest-args)]
            [else
-            (raise-mutable-match-lambda:no-match-error (keyword-apply make-args-hash kws kw-args rest-args))]))
+            (mutable-match-lambda-next)]))
    (string->symbol (format "(make-clause-proc ~v ~v)" test proc))))
 
 (define-syntax clause->proc
@@ -33,14 +33,14 @@
           )))))
 
 (define-syntax-rule (case-lambda-clause->proc clause)
-  (case-lambda clause [args (raise-mutable-match-lambda:no-match-error (apply make-args-hash args))]))
+  (case-lambda clause [_ (mutable-match-lambda-next)]))
 
 (define-syntax-rule (hash-lambda/match-clause->proc clause)
-  (hash-lambda/match clause [args-hash (raise-mutable-match-lambda:no-match-error args-hash)]))
+  (hash-lambda/match clause [_ (mutable-match-lambda-next)]))
 
 (define-syntax-rule (match-lambda-clause->proc clause)
-  (match-lambda clause [arg (raise-mutable-match-lambda:no-match-error (make-args-hash arg))]))
+  (match-lambda clause [_ (mutable-match-lambda-next)]))
 
 (define-syntax-rule (match-lambda*-clause->proc clause)
-  (match-lambda* clause [args (raise-mutable-match-lambda:no-match-error (apply make-args-hash args))]))
+  (match-lambda* clause [_ (mutable-match-lambda-next)]))
 
