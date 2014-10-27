@@ -2,10 +2,10 @@
 
 (provide make-clause-proc
          clause->proc
-         case-lambda-clause->proc
-         hash-lambda/match-clause->proc
-         match-lambda-clause->proc
-         match-lambda*-clause->proc
+         clause->proc/case-lambda
+         clause->proc/hash-lambda/match
+         clause->proc/match-lambda
+         clause->proc/match-lambda*
          )
 
 (require racket/match
@@ -35,19 +35,19 @@
         (syntax-parse stx
           [(clause->proc kw:keyword clause:expr)
            (define kw-str (keyword->string (syntax-e #'kw)))
-           (with-syntax ([kw-id-clause->proc (format-id #'kw "~a-clause->proc" kw-str #:source #'kw)])
-             #'(procedure-rename (kw-id-clause->proc clause) name))]
+           (with-syntax ([clause->proc/kw-id (format-id #'kw "clause->proc/~a" kw-str #:source #'kw)])
+             #'(procedure-rename (clause->proc/kw-id clause) name))]
           )))))
 
-(define-syntax-rule (case-lambda-clause->proc clause)
+(define-syntax-rule (clause->proc/case-lambda clause)
   (case-lambda clause [_ (mutable-match-lambda-next)]))
 
-(define-syntax-rule (hash-lambda/match-clause->proc clause)
+(define-syntax-rule (clause->proc/hash-lambda/match clause)
   (hash-lambda/match clause [_ (mutable-match-lambda-next)]))
 
-(define-syntax-rule (match-lambda-clause->proc clause)
+(define-syntax-rule (clause->proc/match-lambda clause)
   (match-lambda clause [_ (mutable-match-lambda-next)]))
 
-(define-syntax-rule (match-lambda*-clause->proc clause)
+(define-syntax-rule (clause->proc/match-lambda* clause)
   (match-lambda* clause [_ (mutable-match-lambda-next)]))
 
