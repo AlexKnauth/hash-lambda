@@ -129,6 +129,15 @@ makes a new procedure that tries all of the @racket[proc]s in order.
 This is what @racket[mutable-match-lambda-procedure] uses to combine its clauses.  
 }
 
+@defproc[(mutable-match-lambda-next) any]{
+if it is called within a mutable-match-lambda-clause procedure, it signals to
+@racket[mutable-match-lambda-clause-append] to try the next clause (if there is one).
+Otherwise it raises an error.
+
+It is similar in spirit to @racket[match]'s @racket[failure-cont], except that it does escape the
+current context, and it cares about the dynamic extent, not syntactic scope.
+}
+
 @defproc[(mutable-match-lambda-append [proc procedure?] ...) mutable-match-lambda-procedure?]{
 makes a new @racket[mutable-match-lambda-procedure] that tries all of the @racket[proc]s in order.
 
@@ -246,16 +255,44 @@ If @racket[test-proc] returns @racket[#false], then it moves on to the next clau
   (clause-2 #(1 2) #(3 4))
 ]}
 
-@defform*[((clause->proc #:case-lambda case-lambda-clause)
-           (clause->proc #:hash-lambda/match hash-lambda/match-clause)
-           (clause->proc #:match-lambda match-lambda-clause)
-           (clause->proc #:match-lambda* match-lambda*-clause))]{
+@defform[(clause->proc kw clause)]{
 makes a procedure that @racket[mutable-match-lambda-procedure] can use as a clause-proc.
-The keyword specifies what type of clause it is.  If the clause fails to match, it moves on to the
-next clause (if there is one).  
+The keyword specifies what type of clause it is.  
+
+@racket[(clause->proc #:whatever clause)] expands to @racket[(clause->proc/whatever clause)], so if you
+define a macro with the name @racket[clause->proc/whatever], then you can use
+@racket[(clause->proc #:whatever clause)].  
+
+When defining a new @racket[clause->proc/whatever] macro, it should call
+@racket[mutable-match-lambda-next] if it doesn't match.  
+
+@racket[clause->proc/case-lambda], @racket[clause->proc/hash-lambda/match],
+@racket[clause->proc/match-lambda], and @racket[clause->proc/match-lambda*] are already defined, so
+to start with @racket[clause->proc] supports @racket[#:case-lambda], @racket[#:hash-lambda/match],
+@racket[#:match-lambda], and @racket[#:match-lambda*] as keywords.
 
 @examples[
   #:eval
   (make-hash-lambda-evaluator)
-  (examples)
+  (clause->proc #:case-lambda [(x y) (list x y)])
+  (define-syntax-rule (clause->proc/bool->ans ans)
+    (lambda (x)
+      (if x
+          ans
+          (mutable-match-lambda-next))))
+  (define f
+    (make-mutable-match-lambda
+     (clause->proc #:bool->ans 42)
+     (lambda _ "didn't match")))
+  (f #t)
+  (f #f)
 ]}
+
+@deftogether[[
+  @defform[(clause->proc/case-lambda clause)]
+  @defform[(clause->proc/hash-lambda/match clause)]
+  @defform[(clause->proc/match-lambda clause)]
+  @defform[(clause->proc/match-lambda* clause)]
+]]{
+these forms produce procedures that @racket[mutable-match-lambda-procedure] can use as clause-procs.
+}
