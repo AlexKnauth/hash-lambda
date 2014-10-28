@@ -7,7 +7,7 @@
 
 (require racket/list
          racket/match
-         hash-lambda
+         keyword-lambda
          )
 
 
@@ -31,7 +31,9 @@
         [(cons fst rst) (define (next)
                           (call-with-values (λ () (loop rst)) k))
                         (parameterize ([current-mutable-match-lambda-next next])
-                          (keyword-apply fst kws kw-args args))]))
+                          (cond [(procedure-arity+keywords-matches? fst (length args) kws)
+                                 (keyword-apply fst kws kw-args args)]
+                                [else (loop rst)]))]))
     (loop orig-fs)))
 
 

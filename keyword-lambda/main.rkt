@@ -125,7 +125,7 @@
 
 (define arity+keywords-combine
   (case-lambda
-    [() '()]
+    [() (arity+keywords '() '() '())]
     [(a) a]
     [(a1 a2) (let ([a1.arity (arity+keywords-arity a1)]
                    [a1.required-kws (arity+keywords-required-kws a1)]
