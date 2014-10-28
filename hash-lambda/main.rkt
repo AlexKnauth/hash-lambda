@@ -14,7 +14,6 @@
          hash-has-key?/c
          match?/c
          make-hash-lambda-contract
-         (all-from-out keyword-lambda)
          args-hash->string
          )
 
@@ -33,7 +32,8 @@
 
 
 
-(require keyword-lambda)
+(require keyword-lambda/keyword-lambda
+         keyword-lambda/keyword-apply-sort)
 
 
 

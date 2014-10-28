@@ -9,12 +9,10 @@
          racket/math
          racket/match
          racket/contract
-         hash-lambda
-         keyword-lambda
+         keyword-lambda/keyword-lambda
          mutable-match-lambda
          (for-syntax racket/base
                      syntax/parse
-                     racket/syntax
                      syntax/name
                      (for-syntax racket/base)))
 
