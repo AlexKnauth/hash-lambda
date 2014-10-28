@@ -13,12 +13,14 @@
 
 
 (define (mutable-match-lambda-clause-append #:name [name 'mutable-match-lambda] . orig-fs)
-  (procedure-rename
-   (keyword-lambda (kws kw-args . args)
-     (define next (make-next #:name name orig-fs kws kw-args args))
-     (parameterize ([current-mutable-match-lambda-next next])
-       (try orig-fs kws kw-args args)))
-   name))
+  (procedure-reduce-arity+keywords
+   (procedure-rename
+    (keyword-lambda (kws kw-args . args)
+      (define next (make-next #:name name orig-fs kws kw-args args))
+      (parameterize ([current-mutable-match-lambda-next next])
+        (try orig-fs kws kw-args args)))
+    name)
+   (apply arity+keywords-combine (map procedure-arity+keywords orig-fs))))
 
 
 
