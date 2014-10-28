@@ -12,11 +12,13 @@
 
 
 
-(define (mutable-match-lambda-clause-append . orig-fs)
-  (keyword-lambda (kws kw-args . args)
-    (define next (make-next orig-fs kws kw-args args))
-    (parameterize ([current-mutable-match-lambda-next next])
-      (try orig-fs kws kw-args args))))
+(define (mutable-match-lambda-clause-append #:name [name 'mutable-match-lambda] . orig-fs)
+  (procedure-rename
+   (keyword-lambda (kws kw-args . args)
+     (define next (make-next #:name name orig-fs kws kw-args args))
+     (parameterize ([current-mutable-match-lambda-next next])
+       (try orig-fs kws kw-args args)))
+   name))
 
 
 
@@ -49,11 +51,11 @@
 
 
 
-(define (make-next orig-fs kws kw-args args)
+(define (make-next #:name name orig-fs kws kw-args args)
   (define orig-next (current-mutable-match-lambda-next))
   (cond [orig-next orig-next]
         [else (define (next)
-                (error 'mutable-match-lambda
+                (error name
                        (string-append
                         "no clause matches" "\n"
                         "  args: ~a" "\n"
