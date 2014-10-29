@@ -149,7 +149,7 @@ It is equivalent to
 }
 
 @defproc[(arity+keywords-matches? [arity+kws arity+keywords?]
-                                  [n natural/c]
+                                  [n natural-number/c]
                                   [kws (listof keyword?)])
          boolean?]{
 determines whether the given @racket[arity+kws] accepts the @racket[n] by-position arguments and the
@@ -157,13 +157,13 @@ keywords in @racket[kws].
 }
 
 @defproc[(procedure-arity+keywords-matches? [proc procedure?]
-                                            [n natural/c]
+                                            [n natural-number/c]
                                             [kws (listof keyword?)])
          boolean?]{
 equivalent to @racket[(arity+keywords-matches? (procedure-arity+keywords proc) n kws)].
 }
 
-@defproc[(procedure-arity+keywords-matches?/c [n natural/c]
+@defproc[(procedure-arity+keywords-matches?/c [n natural-number/c]
                                               [kws (listof keyword?)])
          flat-contract?]{
 produces a flat contract (also a predicate) that accepts procedures that accept @racket[n] by-position
