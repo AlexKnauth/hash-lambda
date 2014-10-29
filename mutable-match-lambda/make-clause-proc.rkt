@@ -25,8 +25,9 @@
   (procedure-reduce-arity+keywords
    (procedure-rename
     (keyword-lambda (kws kw-args . rest-args)
-      (cond [(and (arity+keywords-matches? test.arity+kws (length rest-args) kws)
-                  (arity+keywords-matches? proc.arity+kws (length rest-args) kws)
+      (define n (length rest-args))
+      (cond [(and (arity+keywords-matches? test.arity+kws n kws)
+                  (arity+keywords-matches? proc.arity+kws n kws)
                   (keyword-apply test kws kw-args rest-args))
              (keyword-apply proc kws kw-args rest-args)]
             [else
