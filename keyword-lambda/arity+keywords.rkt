@@ -16,6 +16,7 @@
          racket/bool
          racket/contract/base
          racket/list
+         racket/match
          )
 
 (module+ test
@@ -52,11 +53,12 @@
   (arity+keywords arity req-kws allowed-kws))
 
 (define (procedure-reduce-arity+keywords proc a)
+  (match-define (arity+keywords arity required-kws allowed-kws) a)
   (procedure-reduce-keyword-arity
    proc
-   (arity+keywords-arity a)
-   (arity+keywords-required-kws a)
-   (arity+keywords-allowed-kws a)))
+   arity
+   required-kws
+   allowed-kws))
 
 ;; like procedure-reduce-keyword-arity, but without the constraint that the kws must be sorted
 (define (procedure-reduce-keyword-arity/sort proc arity required-kws allowed-kws)
@@ -65,16 +67,14 @@
    (arity+keywords arity required-kws allowed-kws)))
 
 (define (arity+keywords-matches? arity+kws n kws)
-  (let ([arity (arity+keywords-arity arity+kws)]
-        [required-kws (arity+keywords-required-kws arity+kws)]
-        [allowed-kws (arity+keywords-allowed-kws arity+kws)])
-    (and (arity-includes? arity n)
-         (or (false? allowed-kws)
-             (for/and ([kw (in-list kws)])
-               (member kw allowed-kws)))
-         (for/and ([required-kw (in-list required-kws)])
-           (member required-kw kws))
-         #t)))
+  (match-define (arity+keywords arity required-kws allowed-kws) arity+kws)
+  (and (arity-includes? arity n)
+       (or (false? allowed-kws)
+           (for/and ([kw (in-list kws)])
+             (member kw allowed-kws)))
+       (for/and ([required-kw (in-list required-kws)])
+         (member required-kw kws))
+       #t))
 
 (define (procedure-arity+keywords-matches? proc n kws)
   (arity+keywords-matches? (procedure-arity+keywords proc) n kws))
@@ -85,34 +85,42 @@
    (lambda (proc)
      (procedure-arity+keywords-matches? proc n kws))))
 
+(define (arity+keywords-includes? a1 a2)
+  (match-define (arity+keywords a1.arity a1.req-kws a1.allowed-kws) a1)
+  (match-define (arity+keywords a2.arity a2.req-kws a2.allowed-kws) a2)
+  (and (arity-includes? a1.arity a2.arity)
+       (for/and ([a1-kw (in-list a1.req-kws)])
+         (member a1-kw a2.req-kws))
+       (cond [(false? a1.allowed-kws) #t]
+             [(false? a2.allowed-kws) #f]
+             [else (for/and ([a2-kw (in-list a2.allowed-kws)])
+                     (member a2-kw a1.allowed-kws))])
+       #t))
+
 (define arity+keywords-combine/or
   (case-lambda
     [() (arity+keywords '() '() '())]
     [(a) a]
-    [(a1 a2) (let ([a1.arity (arity+keywords-arity a1)]
-                   [a1.required-kws (arity+keywords-required-kws a1)]
-                   [a1.allowed-kws (arity+keywords-allowed-kws a1)]
-                   [a2.arity (arity+keywords-arity a2)]
-                   [a2.required-kws (arity+keywords-required-kws a2)]
-                   [a2.allowed-kws (arity+keywords-allowed-kws a2)])
-               (cond
-                 [(andmap empty? (list a1.arity a2.arity)) (arity+keywords '() '() '())]
-                 [(empty? a1.arity) a2]
-                 [(empty? a2.arity) a1]
-                 [else
-                  (define arity
-                    (normalize-arity (flatten (list a1.arity a2.arity))))
-                  (define required-kws
-                    (for*/list ([a1-kw (in-list a1.required-kws)]
-                                [a2-kw (in-list a2.required-kws)]
-                                #:when (equal? a1-kw a2-kw))
-                      a1-kw))
-                  (define allowed-kws
-                    (and a1.allowed-kws a2.allowed-kws
-                         (remove-duplicates
-                          (append a1.allowed-kws
-                                  a2.allowed-kws))))
-                  (arity+keywords arity required-kws allowed-kws)]))]
+    [(a1 a2) (match-define (arity+keywords a1.arity a1.required-kws a1.allowed-kws) a1)
+             (match-define (arity+keywords a2.arity a2.required-kws a2.allowed-kws) a2)
+             (cond
+               [(andmap empty? (list a1.arity a2.arity)) (arity+keywords '() '() '())]
+               [(empty? a1.arity) a2]
+               [(empty? a2.arity) a1]
+               [else
+                (define arity
+                  (normalize-arity (flatten (list a1.arity a2.arity))))
+                (define required-kws
+                  (for*/list ([a1-kw (in-list a1.required-kws)]
+                              [a2-kw (in-list a2.required-kws)]
+                              #:when (equal? a1-kw a2-kw))
+                    a1-kw))
+                (define allowed-kws
+                  (and a1.allowed-kws a2.allowed-kws
+                       (remove-duplicates
+                        (append a1.allowed-kws
+                                a2.allowed-kws))))
+                (arity+keywords arity required-kws allowed-kws)])]
     [(a1 . rest-args) (arity+keywords-combine/or a1 (apply arity+keywords-combine/or rest-args))]
     ))
 
@@ -122,31 +130,27 @@
   (case-lambda
     [() (arity+keywords (arity-at-least 0) '() #f)]
     [(a) a]
-    [(a1 a2) (let ([a1.arity (arity+keywords-arity a1)]
-                   [a1.required-kws (arity+keywords-required-kws a1)]
-                   [a1.allowed-kws (arity+keywords-allowed-kws a1)]
-                   [a2.arity (arity+keywords-arity a2)]
-                   [a2.required-kws (arity+keywords-required-kws a2)]
-                   [a2.allowed-kws (arity+keywords-allowed-kws a2)])
-               (define arity
-                 (arity-combine/and a1.arity a2.arity))
-               (define required-kws
-                 (remove-duplicates
-                  (append a1.required-kws
-                          a2.required-kws)))
-               (define allowed-kws
-                 (cond [(not (list? a1.allowed-kws)) a2.allowed-kws]
-                       [(not (list? a2.allowed-kws)) a1.allowed-kws]
-                       [else
-                        (for*/list ([a1-kw (in-list a1.allowed-kws)]
-                                    [a2-kw (in-list a2.allowed-kws)]
-                                    #:when (equal? a1-kw a2-kw))
-                          a1-kw)]))
-               (cond [(for/and ([req-kw (in-list required-kws)])
-                        (member req-kw allowed-kws))
-                      (arity+keywords arity required-kws allowed-kws)]
+    [(a1 a2) (match-define (arity+keywords a1.arity a1.required-kws a1.allowed-kws) a1)
+             (match-define (arity+keywords a2.arity a2.required-kws a2.allowed-kws) a2)
+             (define arity
+               (arity-combine/and a1.arity a2.arity))
+             (define required-kws
+               (remove-duplicates
+                (append a1.required-kws
+                        a2.required-kws)))
+             (define allowed-kws
+               (cond [(not (list? a1.allowed-kws)) a2.allowed-kws]
+                     [(not (list? a2.allowed-kws)) a1.allowed-kws]
                      [else
-                      (arity+keywords '() required-kws allowed-kws)]))]
+                      (for*/list ([a1-kw (in-list a1.allowed-kws)]
+                                  [a2-kw (in-list a2.allowed-kws)]
+                                  #:when (equal? a1-kw a2-kw))
+                        a1-kw)]))
+             (cond [(for/and ([req-kw (in-list required-kws)])
+                      (member req-kw allowed-kws))
+                    (arity+keywords arity required-kws allowed-kws)]
+                   [else
+                    (arity+keywords '() required-kws allowed-kws)])]
     [(a1 . rest-args) (arity+keywords-combine/and a1 (apply arity+keywords-combine/and rest-args))]
     ))
 
@@ -259,6 +263,23 @@
   (check-match  (arity+keywords-combine/and (arity+keywords 0 '(#:a) #f)
                                             (arity+keywords 0 '() '()))
                 (arity+keywords '() _ _))
+  
+  (check-true  (arity+keywords-includes? (arity+keywords 1 '() '())
+                                         (arity+keywords 1 '() '())))
+  (check-true  (arity+keywords-includes? (arity+keywords '(1 2) '() '())
+                                         (arity+keywords 1 '() '())))
+  (check-false (arity+keywords-includes? (arity+keywords 1 '() '())
+                                         (arity+keywords '(1 2) '() '())))
+  (check-true  (arity+keywords-includes? (arity+keywords 0 '() #f)
+                                         (arity+keywords 0 '() '(#:a))))
+  (check-true  (arity+keywords-includes? (arity+keywords 0 '() #f)
+                                         (arity+keywords 0 '(#:a) '(#:a))))
+  (check-false (arity+keywords-includes? (arity+keywords 0 '(#:a) #f)
+                                         (arity+keywords 0 '() '(#:a))))
+  (check-true  (arity+keywords-includes? (arity+keywords 0 '() '(#:a #:b))
+                                         (arity+keywords 0 '(#:a) '(#:a))))
+  (check-false (arity+keywords-includes? (arity+keywords 0 '() '())
+                                         (arity+keywords 0 '() #f)))
   
   )
 

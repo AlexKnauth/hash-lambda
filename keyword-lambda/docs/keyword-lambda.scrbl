@@ -170,6 +170,11 @@ produces a flat contract (also a predicate) that accepts procedures that accept 
 arguments and accepts the keywords in @racket[kws].  
 }
 
+@defproc[(arity+keywords-includes? [a1 arity+keywords?] [a2 arity+keywords?]) boolean?]{
+like @racket[arity-includes?], but for @racket[arity+keywords] instances.  But most of the time when
+when you would use @racket[arity-includes?], you really want @racket[arity+keywords-matches?].
+}
+
 @defproc[(arity+keywords-combine/or [arity+kws arity+keywords?] ...) arity+keywords?]{
 combines the @racket[arity+kws]es into one @racket[arity+keywords] instance in an or-like way.  
 
