@@ -176,6 +176,17 @@ combines the @racket[arity+kws]es into one @racket[arity+keywords] instance in a
 @examples[
   #:eval
   (make-hash-lambda-evaluator)
-  (arity+keywords-combine/or (arity+keywords 1 '(#:kw-1)        '(#:kw-1 #:kw-2 #:kw-3))
-                             (arity+keywords 2 '(#:kw-1 #:kw-2) '(#:kw-1 #:kw-2 #:kw-4)))
+  (arity+keywords-combine/or (arity+keywords 1 '(#:a)     '(#:a #:b #:c))
+                             (arity+keywords 2 '(#:a #:b) '(#:a #:b #:d)))
 ]}
+
+@defproc[(arity+keywords-combine/and [arity+kws arity+keywords?] ...) arity+keywords?]{
+combines the @racket[arity+kws]es into one @racket[arity+keywords] instance in an and-like way.  
+
+@examples[
+  #:eval
+  (make-hash-lambda-evaluator)
+  (arity+keywords-combine/and (arity+keywords '(1 2) '(#:a) '(#:a #:b #:c #:d))
+                              (arity+keywords '(2 3) '(#:b) '(#:a #:b #:c #:e)))
+]}
+

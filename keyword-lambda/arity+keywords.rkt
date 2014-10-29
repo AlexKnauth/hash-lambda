@@ -21,16 +21,29 @@
 (module+ test
   (require rackunit racket/local racket/math))
 
+(define (arity+keywords-guard arity required-kws allowed-kws _)
+  (unless (procedure-arity? arity)
+    (error 'arity+keywords "expected procedure-arity? for first argument, given ~v" arity))
+  (unless ((listof keyword?) required-kws)
+    (error 'arity+keywords
+           "expcetd (listof keyword?) for second argument, given ~v"
+           required-kws))
+  (unless ((or/c (listof keyword?) #t #f) allowed-kws)
+    (error 'arity+keywords
+           "expcetd (or/c (listof keyword?) #f) for third argument, given ~v"
+           required-kws))
+  (define new-arity (normalize-arity arity))
+  (define new-required-kws
+    (sort required-kws keyword<?))
+  (define new-allowed-kws
+    (cond [(list? allowed-kws)
+           (sort (remove-duplicates (append new-required-kws allowed-kws))
+                 keyword<?)]
+          [else #f]))
+  (values new-arity new-required-kws new-allowed-kws))
+
 (struct arity+keywords (arity required-kws allowed-kws) #:transparent
-  #:guard (lambda (arity required-kws allowed-kws _)
-            (define new-required-kws
-              (sort required-kws keyword<?))
-            (define new-allowed-kws
-              (cond [(list? allowed-kws)
-                     (sort (remove-duplicates (append new-required-kws allowed-kws))
-                           keyword<?)]
-                    [else #f]))
-            (values arity new-required-kws new-allowed-kws)))
+  #:guard arity+keywords-guard)
 
 (define (procedure-arity+keywords proc)
   (define arity (procedure-arity proc))
@@ -60,7 +73,8 @@
              (for/and ([kw (in-list kws)])
                (member kw allowed-kws)))
          (for/and ([required-kw (in-list required-kws)])
-           (member required-kw kws)))))
+           (member required-kw kws))
+         #t)))
 
 (define (procedure-arity+keywords-matches? proc n kws)
   (arity+keywords-matches? (procedure-arity+keywords proc) n kws))
@@ -124,12 +138,15 @@
                  (cond [(not (list? a1.allowed-kws)) a2.allowed-kws]
                        [(not (list? a2.allowed-kws)) a1.allowed-kws]
                        [else
-                        (for*/list ([a1-kw (in-list a1.required-kws)]
-                                    [a2-kw (in-list a2.required-kws)]
+                        (for*/list ([a1-kw (in-list a1.allowed-kws)]
+                                    [a2-kw (in-list a2.allowed-kws)]
                                     #:when (equal? a1-kw a2-kw))
                           a1-kw)]))
-               (arity+keywords arity required-kws allowed-kws))
-             ]
+               (cond [(for/and ([req-kw (in-list required-kws)])
+                        (member req-kw allowed-kws))
+                      (arity+keywords arity required-kws allowed-kws)]
+                     [else
+                      (arity+keywords '() required-kws allowed-kws)]))]
     [(a1 . rest-args) (arity+keywords-combine/and a1 (apply arity+keywords-combine/and rest-args))]
     ))
 
@@ -179,3 +196,70 @@
              (for/list ([n (in-list a2)])
                (arity-combine/and a1 n))))]
           [else (error 'arity-combine/and "this should never happen")])))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module+ test
+  (check-equal? (arity+keywords (list 1 (arity-at-least 3) 2) '() #t)
+                (arity+keywords (arity-at-least 1) '() #f))
+  (check-equal? (arity+keywords '(1) '(#:a #:b) '(#:c))
+                (arity+keywords 1 '(#:a #:b) '(#:a #:b #:c)))
+  
+  (local [(define proc (make-keyword-procedure void))]
+    (check-equal? (procedure-arity+keywords proc)
+                  (arity+keywords (arity-at-least 0) '() #f))
+    (check-equal? (procedure-arity+keywords (procedure-reduce-arity proc 5))
+                  (arity+keywords 5 '() '()))
+    (define proc-with-arity
+      (procedure-reduce-arity+keywords
+       proc
+       (arity+keywords 3 '(#:kw #:other-kw) '(#:kw #:other-kw #:optional-kw))))
+    (check-equal? (procedure-arity+keywords proc-with-arity)
+                  (arity+keywords 3 '(#:kw #:other-kw) '(#:kw #:other-kw #:optional-kw)))
+    (check-equal? (procedure-arity proc-with-arity) 3)
+    (check-equal? (call-with-values (λ () (procedure-keywords proc-with-arity)) list)
+                  (list '(#:kw #:other-kw) '(#:kw #:optional-kw #:other-kw))))
+  
+  (check-true  (arity+keywords-matches? (arity+keywords 0 '() '()) 0 '()))
+  (check-false (arity+keywords-matches? (arity+keywords 0 '() '()) 1 '()))
+  (check-false (arity+keywords-matches? (arity+keywords '() '() #f) 0 '()))
+  (check-true  (arity+keywords-matches? (arity+keywords (list 2 (arity-at-least 5))
+                                                        '() '())
+                                        2 '()))
+  (check-false (arity+keywords-matches? (arity+keywords (list 2 (arity-at-least 5))
+                                                        '() '())
+                                        3 '()))
+  (check-true  (arity+keywords-matches? (arity+keywords (list 2 (arity-at-least 5))
+                                                        '() '())
+                                        5 '()))
+  (check-true  (arity+keywords-matches? (arity+keywords 0 '(#:a #:b) '(#:a #:b #:c))
+                                        0 '(#:a #:b)))
+  (check-true  (arity+keywords-matches? (arity+keywords 0 '(#:a #:b) '(#:a #:b #:c))
+                                        0 '(#:a #:b #:c)))
+  (check-false (arity+keywords-matches? (arity+keywords 0 '(#:a #:b) '(#:a #:b #:c))
+                                        0 '(#:a #:c)))
+  (check-true  (arity+keywords-matches? (arity+keywords 0 '() #f)
+                                        0 '(#:whatever)))
+  
+  (check-equal? (arity+keywords-combine/or) (arity+keywords '() '() '()))
+  (check-equal? (arity+keywords-combine/or (arity+keywords '(4 9 16) '(#:a #:b) '(#:a #:b #:c)))
+                (arity+keywords '(4 9 16) '(#:a #:b) '(#:a #:b #:c)))
+  (check-equal? (arity+keywords-combine/or (arity+keywords 1 '(#:a)     '(#:a #:b #:c))
+                                           (arity+keywords 2 '(#:a #:b) '(#:a #:b #:d)))
+                (arity+keywords '(1 2) '(#:a) '(#:a #:b #:c #:d)))
+  
+  (check-equal? (arity+keywords-combine/and) (arity+keywords (arity-at-least 0) '() #f))
+  (check-equal? (arity+keywords-combine/and (arity+keywords '(4 9 16) '(#:a #:b) '(#:a #:b #:c)))
+                (arity+keywords '(4 9 16) '(#:a #:b) '(#:a #:b #:c)))
+  (check-equal? (arity+keywords-combine/and (arity+keywords '(1 2) '(#:a) '(#:a #:b #:c #:d))
+                                            (arity+keywords '(2 3) '(#:b) '(#:a #:b #:c #:e)))
+                (arity+keywords 2 '(#:a #:b) '(#:a #:b #:c)))
+  (check-match  (arity+keywords-combine/and (arity+keywords 0 '(#:a) #f)
+                                            (arity+keywords 0 '() '()))
+                (arity+keywords '() _ _))
+  
+  )
+
+
