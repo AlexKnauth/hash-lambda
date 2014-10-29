@@ -3,6 +3,7 @@
 @(require racket/base)
 @(require keyword-lambda/keyword-case-lambda)
 @(require (for-label keyword-lambda/keyword-case-lambda
+                     mutable-match-lambda
                      racket/base
                      racket/match
                      racket/format
@@ -28,7 +29,7 @@
 
 @title{keyword-case-lambda}
 
-@defmodule[keyword-lambda/keyword-case-lambda #:packages ("hash-lambda")]
+@defmodule[keyword-lambda/keyword-case-lambda]
 
 @defform[(keyword-case-lambda clause ...)
          #:grammar ([clause [kw-formals maybe-when body-expr ...+]
@@ -78,6 +79,11 @@ keyword-arguments), but can still go on to the next clause if the @racket[#:when
 
 It also allows you to use @racket[#:when] and @racket[#:unless] in the clauses.  
 
+@racket[keyword-case-lambda] does not create a @racket[mutable-match-lambda-procedure], but it uses
+@racket[mutable-match-lambda-clause-append] (which creates a normal immutable procedure), so it
+supports going to the next clause with @racket[mutable-match-lambda-next].
+(@racket[mutable-keyword-case-lambda] creates a @racket[mutable-match-lambda-procedure])
+
 @examples[
   #:eval
   (make-hash-lambda-evaluator)
@@ -123,3 +129,13 @@ It also allows you to use @racket[#:when] and @racket[#:unless] in the clauses.
   (f 'm: 2 'v: 1)
   (f "something")
 ]}
+
+@defform[(mutable-keyword-case-lambda clause ...)]{
+like @racket[keyword-case-lambda], but creates a @racket[mutable-match-lambda-procedure].
+}
+
+@defform[(clause->proc/keyword-case-lambda clause)]{
+creates a clause-proc that can be used for a @racket[mutable-match-lambda-procedure], so you can use
+@racket[(clause->proc #:keyword-case-lambda clause)].
+}
+

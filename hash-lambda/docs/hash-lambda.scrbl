@@ -30,9 +30,9 @@
 
 @title[#:tag "hash-lambda.scrbl"]{hash-lambda}
 
-@defmodule[hash-lambda #:packages ("hash-lambda")]{
+@defmodule[hash-lambda]{
 
-These forms allow you to create a "rest argument" that includes keyword arguments.  
+These forms and functions allow you to create a "rest argument" that includes keyword arguments.  
 @margin-note*{see @secref["rest-args" #:doc '(lib "scribblings/guide/guide.scrbl")]}
 
 Instead of storing the arguments in a list, @racket[hash-lambda] stores them in a hash table, 

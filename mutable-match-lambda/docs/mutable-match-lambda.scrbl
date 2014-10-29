@@ -31,9 +31,9 @@
 
 @title{mutable-match-lambda}
 
-@defmodule[mutable-match-lambda #:packages ("hash-lambda")]{
+@defmodule[mutable-match-lambda]{
 
-These functions allow a mutable generic procedure like this:
+These forms and functions allow a mutable generic procedure like this:
 
 @examples[
   #:eval
@@ -259,6 +259,11 @@ If @racket[test-proc] returns @racket[#false], then it moves on to the next clau
 makes a procedure that @racket[mutable-match-lambda-procedure] can use as a clause-proc.
 The keyword specifies what type of clause it is.  
 
+For example @racket[(clause->proc #:match-lambda* match-lambda*-clause)] creates a clause-proc that
+acts like a @racket[match-lambda*] clause.  It actually expands to
+@racket[(clause->proc/match-lambda* match-lambda*-clause)], and then
+@racket[clause->proc/match-lambda*] does the rest.  
+
 @racket[(clause->proc #:whatever clause)] expands to @racket[(clause->proc/whatever clause)], so if you
 define a macro with the name @racket[clause->proc/whatever], then you can use
 @racket[(clause->proc #:whatever clause)].  
@@ -294,5 +299,6 @@ to start with @racket[clause->proc] supports @racket[#:case-lambda], @racket[#:h
   @defform[(clause->proc/match-lambda clause)]
   @defform[(clause->proc/match-lambda* clause)]
 ]]{
-these forms produce procedures that @racket[mutable-match-lambda-procedure] can use as clause-procs.
+these forms produce procedures that @racket[mutable-match-lambda-procedure] can use as clause-procs,
+so you can use @racket[#:case-lambda] etc. as keywords in @racket[clause->proc].
 }

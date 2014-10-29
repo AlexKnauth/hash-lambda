@@ -26,11 +26,13 @@
                                       racket/bool
                                       racket/math)))))
 
-@title{keyword-lambda}
+@title[#:tag "keyword-lambda.scrbl"]{keyword-lambda, keyword-apply/sort, and arity+keywords stuff}
 
 @defmodule[keyword-lambda]
 
-@section{keyword-lambda, keyword-apply/sort, and procedure-reduce-keyword-arity/sort}
+@section{keyword-lambda}
+
+@defmodule[keyword-lambda/keyword-lambda]
 
 @defform[(keyword-lambda (kws kw-args . rest-args) body ...)]{
 roughly equivalent to
@@ -48,6 +50,10 @@ roughly equivalent to
   (proc #:a 'a #:b 'b 0 1 2)
 ]}
 
+@section{keyword-apply/sort}
+
+@defmodule[keyword-lambda/keyword-apply-sort]
+
 @defproc[(keyword-apply/sort [f procedure?] [kws (listof keyword?)] [kw-args list?]
                              [v any/c] ... [lst list?] [#:<kw> kw-arg any/c] ...) any]{
 like @racket[keyword-apply], but without the constraint that the keywords in @racket[kws] must be
@@ -62,16 +68,9 @@ sorted.
   (keyword-apply/sort kinetic-energy '(#:velocity #:mass) '(1 2) '())
 ]}
 
-@defproc[(procedure-reduce-keyword-arity/sort [proc procedure?]
-                                              [arity procedure-arity?]
-                                              [required-kws (listof keyword?)]
-                                              [allowed-kws (or/c (listof keyword?) #f)])
-         procedure?]{
-like @racket[procedure-reduce-keyword-arity], but without the constraint that the keywords in
-@racket[required-kws] or @racket[allowed-kws] must be sorted.
-}
-
 @section{arity+keywords}
+
+@defmodule[keyword-lambda/arity+keywords]
 
 @defstruct*[arity+keywords ([arity procedure-arity?]
                             [required-kws (listof keyword?)]
@@ -136,6 +135,40 @@ It is defined like this:
   (procedure-arity proc-with-arity)
   (procedure-keywords proc-with-arity)
 ]}
+
+@defproc[(procedure-reduce-keyword-arity/sort [proc procedure?]
+                                              [arity procedure-arity?]
+                                              [required-kws (listof keyword?)]
+                                              [allowed-kws (or/c (listof keyword?) #f)])
+         procedure?]{
+like @racket[procedure-reduce-keyword-arity], but without the constraint that the keywords in
+@racket[required-kws] or @racket[allowed-kws] must be sorted.
+
+It is equivalent to
+@racket[(procedure-reduce-arity+keywords proc (arity+keywords arity required-kws allowed-kws))].
+}
+
+@defproc[(arity+keywords-matches? [arity+kws arity+keywords?]
+                                  [n natural/c]
+                                  [kws (listof keyword?)])
+         boolean?]{
+determines whether the given @racket[arity+kws] accepts the @racket[n] by-position arguments and the
+keywords in @racket[kws].
+}
+
+@defproc[(procedure-arity+keywords-matches? [proc procedure?]
+                                            [n natural/c]
+                                            [kws (listof keyword?)])
+         boolean?]{
+equivalent to @racket[(arity+keywords-matches? (procedure-arity+keywords proc) n kws)].
+}
+
+@defproc[(procedure-arity+keywords-matches?/c [n natural/c]
+                                              [kws (listof keyword?)])
+         flat-contract?]{
+produces a flat contract (also a predicate) that accepts procedures that accept @racket[n] by-position
+arguments and accepts the keywords in @racket[kws].  
+}
 
 @defproc[(arity+keywords-combine [arity+kws arity+keywords?] ...) arity+keywords?]{
 combines the @racket[arity+kws]es into one @racket[arity+keywords] instance in an or-like way.  
