@@ -170,12 +170,12 @@ produces a flat contract (also a predicate) that accepts procedures that accept 
 arguments and accepts the keywords in @racket[kws].  
 }
 
-@defproc[(arity+keywords-combine [arity+kws arity+keywords?] ...) arity+keywords?]{
+@defproc[(arity+keywords-combine/or [arity+kws arity+keywords?] ...) arity+keywords?]{
 combines the @racket[arity+kws]es into one @racket[arity+keywords] instance in an or-like way.  
 
 @examples[
   #:eval
   (make-hash-lambda-evaluator)
-  (arity+keywords-combine (arity+keywords 1 '(#:kw-1)        '(#:kw-1 #:kw-2 #:kw-3))
-                          (arity+keywords 2 '(#:kw-1 #:kw-2) '(#:kw-1 #:kw-2 #:kw-4)))
+  (arity+keywords-combine/or (arity+keywords 1 '(#:kw-1)        '(#:kw-1 #:kw-2 #:kw-3))
+                             (arity+keywords 2 '(#:kw-1 #:kw-2) '(#:kw-1 #:kw-2 #:kw-4)))
 ]}

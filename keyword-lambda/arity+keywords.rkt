@@ -7,6 +7,8 @@
          arity+keywords-matches?
          procedure-arity+keywords-matches?
          procedure-arity+keywords-matches?/c
+         arity+keywords-combine/or
+         arity+keywords-combine/and
          arity+keywords-combine
          )
 
@@ -69,7 +71,7 @@
    (lambda (proc)
      (procedure-arity+keywords-matches? proc n kws))))
 
-(define arity+keywords-combine
+(define arity+keywords-combine/or
   (case-lambda
     [() (arity+keywords '() '() '())]
     [(a) a]
@@ -97,5 +99,83 @@
                           (append a1.allowed-kws
                                   a2.allowed-kws))))
                   (arity+keywords arity required-kws allowed-kws)]))]
-    [(a1 . rest-args) (arity+keywords-combine a1 (apply arity+keywords-combine rest-args))]
+    [(a1 . rest-args) (arity+keywords-combine/or a1 (apply arity+keywords-combine/or rest-args))]
     ))
+
+(define arity+keywords-combine arity+keywords-combine/or)
+
+(define arity+keywords-combine/and
+  (case-lambda
+    [() (arity+keywords (arity-at-least 0) '() #f)]
+    [(a) a]
+    [(a1 a2) (let ([a1.arity (arity+keywords-arity a1)]
+                   [a1.required-kws (arity+keywords-required-kws a1)]
+                   [a1.allowed-kws (arity+keywords-allowed-kws a1)]
+                   [a2.arity (arity+keywords-arity a2)]
+                   [a2.required-kws (arity+keywords-required-kws a2)]
+                   [a2.allowed-kws (arity+keywords-allowed-kws a2)])
+               (define arity
+                 (arity-combine/and a1.arity a2.arity))
+               (define required-kws
+                 (remove-duplicates
+                  (append a1.required-kws
+                          a2.required-kws)))
+               (define allowed-kws
+                 (cond [(not (list? a1.allowed-kws)) a2.allowed-kws]
+                       [(not (list? a2.allowed-kws)) a1.allowed-kws]
+                       [else
+                        (for*/list ([a1-kw (in-list a1.required-kws)]
+                                    [a2-kw (in-list a2.required-kws)]
+                                    #:when (equal? a1-kw a2-kw))
+                          a1-kw)]))
+               (arity+keywords arity required-kws allowed-kws))
+             ]
+    [(a1 . rest-args) (arity+keywords-combine/and a1 (apply arity+keywords-combine/and rest-args))]
+    ))
+
+(define (arity-combine/and a1 a2)
+  (let ([a1 (normalize-arity a1)]
+        [a2 (normalize-arity a2)])
+    (cond [(arity-includes? a1 a2) a2]
+          [(arity-includes? a2 a1) a1]
+          [(number? a1)
+           (cond [(arity-includes? a2 a1) a1]
+                 [else '()])]
+          [(number? a2)
+           (cond [(arity-includes? a1 a2) a2]
+                 [else '()])]
+          [(arity-at-least? a1)
+           (cond [(arity-includes? a2 a1) a1]
+                 [(number? a2) '()]
+                 [(arity-at-least? a2)
+                  (arity-at-least (max (arity-at-least-value a1)
+                                       (arity-at-least-value a2)))]
+                 [(list? a2)
+                  (normalize-arity
+                   (flatten
+                    (for/list ([n (in-list a2)])
+                      (arity-combine/and a1 n))))]
+                 [else (error 'arity-combine/and "this should never happen")])]
+          [(arity-at-least? a2)
+           (cond [(arity-includes? a1 a2) a2]
+                 [(number? a1) '()]
+                 [(arity-at-least? a1)
+                  (arity-at-least (max (arity-at-least-value a1)
+                                       (arity-at-least-value a2)))]
+                 [(list? a1)
+                  (normalize-arity
+                   (flatten
+                    (for/list ([n (in-list a1)])
+                      (arity-combine/and a2 n))))]
+                 [else (error 'arity-combine/and "this should never happen")])]
+          [(list? a1)
+           (normalize-arity
+            (flatten
+             (for/list ([n (in-list a1)])
+               (arity-combine/and a2 n))))]
+          [(list? a2)
+           (normalize-arity
+            (flatten
+             (for/list ([n (in-list a2)])
+               (arity-combine/and a1 n))))]
+          [else (error 'arity-combine/and "this should never happen")])))

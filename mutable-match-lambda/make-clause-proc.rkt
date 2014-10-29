@@ -20,14 +20,19 @@
                      ))
 
 (define (make-clause-proc test proc)
-  (procedure-rename
-   (keyword-lambda (kws kw-args . rest-args)
-     (cond [(and (arity+keywords-matches? (procedure-arity+keywords test) (length rest-args) kws)
-                 (keyword-apply test kws kw-args rest-args))
-            (keyword-apply proc kws kw-args rest-args)]
-           [else
-            (mutable-match-lambda-next)]))
-   (string->symbol (format "(make-clause-proc ~v ~v)" test proc))))
+  (define test.arity+kws (procedure-arity+keywords test))
+  (define proc.arity+kws (procedure-arity+keywords proc))
+  (procedure-reduce-arity+keywords
+   (procedure-rename
+    (keyword-lambda (kws kw-args . rest-args)
+      (cond [(and (arity+keywords-matches? test.arity+kws (length rest-args) kws)
+                  (arity+keywords-matches? proc.arity+kws (length rest-args) kws)
+                  (keyword-apply test kws kw-args rest-args))
+             (keyword-apply proc kws kw-args rest-args)]
+            [else
+             (mutable-match-lambda-next)]))
+    (string->symbol (format "(make-clause-proc ~v ~v)" test proc)))
+   (arity+keywords-combine/and test.arity+kws proc.arity+kws)))
 
 (define-syntax clause->proc
   (lambda (stx)
