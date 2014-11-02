@@ -21,7 +21,7 @@
       (parameterize ([current-mutable-match-lambda-next next])
         (try orig-fs kws kw-args args)))
     name)
-   (apply arity+keywords-combine (map procedure-arity+keywords orig-fs))))
+   (apply arity+keywords-combine/or (map procedure-arity+keywords orig-fs))))
 
 
 
