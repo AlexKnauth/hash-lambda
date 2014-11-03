@@ -267,9 +267,15 @@
          (arity+keywords arity req-kws allowed-kws)]))
 
 ;; arity-subtract : Procedure-Arity Natural -> Procedure-Arity
-(define (arity-subtract a n)
-  (cond [(empty? a) '()]
-        [(number? a)
+(define (arity-subtract arity n)
+  (arity-map
+   (λ (a)
+     (arity-subtract/simple a n))
+   arity))
+
+;; arity-subtract/simple : [(U Natural (arity-at-least Natural)) Natural -> Procedure-Arity]
+(define (arity-subtract/simple a n)
+  (cond [(number? a)
          (define new-a (- a n))
          (cond [(negative? new-a) '()]
                [else new-a])]
@@ -278,11 +284,17 @@
          (define new-a.n (- a.n n))
          (cond [(negative? new-a.n) (arity-at-least 0)]
                [else (arity-at-least new-a.n)])]
-        [(pair? a)
-         (normalize-arity
-          (flatten
-           (list (arity-subtract (first a) n)
-                 (arity-subtract (rest a) n))))]))
+        [else (error 'arity-subtract/simple "this should never happen")]))
+
+;;(define-type Nat/Aal->Ar [(U Natural (arity-at-least Natural)) -> Procedure-Arity])
+
+;; arity-map : [Nat/Aal->Ar Procedure-Arity -> Procedure-Arity]
+(define (arity-map proc arity)
+  (let ([arity (normalize-arity arity)])
+    (cond [(number? arity) (normalize-arity (proc arity))]
+          [(arity-at-least? arity) (normalize-arity (proc arity))]
+          [(list? arity) (normalize-arity (flatten (map proc arity)))]
+          [else (error 'arity-map "this should never happen, given ~v" arity)])))
 
 
 
