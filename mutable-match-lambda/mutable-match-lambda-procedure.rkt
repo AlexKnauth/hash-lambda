@@ -9,7 +9,7 @@
          )
 
 (require racket/list
-         keyword-lambda/keyword-lambda
+         kw-utils/keyword-lambda
          (only-in "communication.rkt" mutable-match-lambda-clause-append)
          (for-syntax racket/base
                      syntax/parse

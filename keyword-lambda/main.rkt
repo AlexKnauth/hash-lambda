@@ -1,12 +1,8 @@
 #lang racket/base
-
-(provide (all-from-out
-          "keyword-lambda.rkt"
-          "keyword-apply-sort.rkt"
-          "arity+keywords.rkt"
-          ))
-
-(require "keyword-lambda.rkt"
-         "keyword-apply-sort.rkt"
-         "arity+keywords.rkt"
-         )
+(require kw-utils/keyword-lambda
+         kw-utils/keyword-apply-sort
+         kw-utils/arity+keywords)
+(provide (all-from-out 
+          kw-utils/keyword-lambda
+          kw-utils/keyword-apply-sort
+          kw-utils/arity+keywords))

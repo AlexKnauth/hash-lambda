@@ -7,8 +7,8 @@
 
 (require racket/list
          racket/match
-         keyword-lambda/keyword-lambda
-         keyword-lambda/arity+keywords
+         kw-utils/keyword-lambda
+         kw-utils/arity+keywords
          )
 
 

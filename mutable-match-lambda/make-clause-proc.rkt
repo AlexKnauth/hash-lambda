@@ -9,8 +9,8 @@
          )
 
 (require racket/match
-         keyword-lambda/keyword-lambda
-         keyword-lambda/arity+keywords
+         kw-utils/keyword-lambda
+         kw-utils/arity+keywords
          (only-in hash-lambda hash-lambda/match)
          (only-in "communication.rkt" mutable-match-lambda-next)
          (for-syntax racket/base

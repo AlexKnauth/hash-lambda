@@ -9,7 +9,7 @@
          racket/math
          racket/match
          racket/contract
-         keyword-lambda/keyword-lambda
+         kw-utils/keyword-lambda
          mutable-match-lambda
          (for-syntax racket/base
                      syntax/parse

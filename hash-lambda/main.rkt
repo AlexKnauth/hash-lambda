@@ -32,8 +32,8 @@
 
 
 
-(require keyword-lambda/keyword-lambda
-         keyword-lambda/keyword-apply-sort)
+(require kw-utils/keyword-lambda
+         kw-utils/keyword-apply-sort)
 
 
 
