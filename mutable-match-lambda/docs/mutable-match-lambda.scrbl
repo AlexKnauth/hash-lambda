@@ -39,6 +39,7 @@ These forms and functions allow a mutable generic procedure like this:
   #:eval
   (make-hash-lambda-evaluator)
   (define my+ (mutable-match-lambda))
+  my+
   (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? number? ns) ...) (apply + ns)])
   (my+ 1 2)
   (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? vector? vs) ...) (apply vector-map + vs)])
@@ -47,7 +48,7 @@ These forms and functions allow a mutable generic procedure like this:
 
 @section{mutable-match-lambda-procedure}
 
-@defstruct*[mutable-match-lambda-procedure ([procs (listof procedure?)]) #:mutable #:transparent]{
+@defstruct*[mutable-match-lambda-procedure ([name any/c] [procs (listof procedure?)]) #:mutable #:transparent]{
 represents a procedure, with a @racket[prop:procedure] property that allows it to be applied as a procedure.
 It tries each of its @racket[procs] in order, using @racket[mutable-match-lambda-clause-append].  
 Forms like @racket[mutable-case-lambda] and @racket[mutable-match-lambda] all create instances of this.  
@@ -55,8 +56,8 @@ When they do, each clause is converted to a procedure (using @racket[clause->pro
 is stored in the @racket[procs] field.  
 }
 
-@defproc[(make-mutable-match-lambda [proc procedure?] ...) mutable-match-lambda-procedure?]{
-equivalent to @racket[(mutable-match-lambda-procedure (list proc ...))].
+@defproc[(make-mutable-match-lambda [proc procedure?] ... [#:name name any/c #f]) mutable-match-lambda-procedure?]{
+equivalent to @racket[(mutable-match-lambda-procedure name (list proc ...))].
 }
 
 @deftogether[(@defproc[(mutable-match-lambda-add-clause-proc! [proc mutable-match-lambda-procedure?] [clause-proc procedure?] ...) void?]
@@ -123,7 +124,8 @@ The difference between them is the same as the difference between
   (my+ 1 2)
 ]}
 
-@defproc[(mutable-match-lambda-clause-append [proc procedure?] ...) procedure?]{
+@defproc[(mutable-match-lambda-clause-append [proc procedure?] ...
+                                             [#:name name any/c 'mutable-match-lambda]) procedure?]{
 makes a new procedure that tries all of the @racket[proc]s in order.
 
 This is what @racket[mutable-match-lambda-procedure] uses to combine its clauses.  
@@ -138,7 +140,8 @@ It is similar in spirit to @racket[match]'s @racket[failure-cont], except that i
 current context, and it cares about the dynamic extent, not syntactic scope.
 }
 
-@defproc[(mutable-match-lambda-append [proc procedure?] ...) mutable-match-lambda-procedure?]{
+@defproc[(mutable-match-lambda-append [proc procedure?] ... [#:name name any/c #f])
+         mutable-match-lambda-procedure?]{
 makes a new @racket[mutable-match-lambda-procedure] that tries all of the @racket[proc]s in order.
 
 The difference between this and @racket[make-mutable-match-lambda] is that if a @racket[proc] is a
@@ -155,7 +158,18 @@ if @racket[proc] is a @racket[mutable-match-lambda-procedure], it returns a copy
 Otherwise it returns a @racket[mutable-match-lambda-procedure] that has @racket[proc] as its only
 clause.
 
-It is equivalent to @racket[(mutable-match-lambda-append proc)].
+It is equivalent to
+@racket[(mutable-match-lambda-append proc #:name (mutable-match-lambda-procedure-name proc))].
+}
+
+@defform[(make-mutable-match-lambda/infer-name proc-expr ...)]{
+like @racket[make-mutable-match-lambda], except that it can infers the name argument from the context.
+For example, in @racket[(define my-proc (make-mutable-match-lambda/infer-name))], it infers the name
+@racket['my-proc].  
+@margin-note{see @secref["infernames" #:doc '(lib "scribblings/reference/reference.scrbl")]}
+
+It is used to infer the names for forms like @racket[mutable-case-lambda] and
+@racket[mutable-match-lambda].  
 }
 
 @section{mutable-match-lambda, etc}
@@ -168,7 +182,7 @@ By the way, you can add other types of clauses than @racket[case-lambda] clauses
 It is defined like this:
 @(racketblock
   (define-syntax-rule (mutable-case-lambda clause ...)
-    (make-mutable-match-lambda
+    (make-mutable-match-lambda/infer-name
      (clause->proc #:case-lambda clause) ...))
   )
 
@@ -186,7 +200,7 @@ By the way, you can add other types of clauses than @racket[hash-lambda/match] c
 It is defined like this:
 @(racketblock
   (define-syntax-rule (mutable-hash-lambda/match clause ...)
-    (make-mutable-match-lambda
+    (make-mutable-match-lambda/infer-name
      (clause->proc #:hash-lambda/match clause) ...))
   )
 
@@ -204,7 +218,7 @@ By the way, you can add other types of clauses than @racket[match-lambda] clause
 It is defined like this:
 @(racketblock
   (define-syntax-rule (mutable-match-lambda clause ...)
-    (make-mutable-match-lambda
+    (make-mutable-match-lambda/infer-name
      (clause->proc #:match-lambda clause) ...))
   )
 
@@ -222,7 +236,7 @@ By the way, you can add other types of clauses than @racket[match-lambda*] claus
 It is defined like this:
 @(racketblock
   (define-syntax-rule (mutable-match-lambda* clause ...)
-    (make-mutable-match-lambda
+    (make-mutable-match-lambda/infer-name
      (clause->proc #:match-lambda* clause) ...))
   )
 

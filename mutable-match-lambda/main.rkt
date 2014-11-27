@@ -4,6 +4,7 @@
           "mutable-match-lambda-procedure.rkt"
           "make-clause-proc.rkt"
           "communication.rkt")
+         make-mutable-match-lambda/infer-name
          mutable-case-lambda
          mutable-hash-lambda/match
          mutable-match-lambda
@@ -17,12 +18,14 @@
          "communication.rkt"
          (for-syntax racket/base
                      syntax/parse
+                     syntax/name
                      (for-syntax racket/base)))
 
 (module+ test
-  (require rackunit)
+  (require rackunit racket/format)
   
   (define dup (mutable-match-lambda))
+  (check-equal? (~a dup) "#<procedure:dup>")
   (mutable-match-lambda-add-clause! dup (make-clause-proc string? (lambda (s) (string-append s s))))
   (mutable-match-lambda-add-clause! dup #:match-lambda* [(list (? integer? n)) (list n n)])
   
@@ -30,6 +33,7 @@
   (check-equal? (dup 10) '(10 10))
   
   (define my+ (mutable-match-lambda))
+  (check-equal? (~a my+) "#<procedure:my+>")
   (define (numbers? . args) (andmap number? args))
   (mutable-match-lambda-add-clause! my+ (make-clause-proc numbers? +))
   (define (vectors? . args) (andmap vector? args))
@@ -57,20 +61,27 @@
 (begin-for-syntax
   (define-syntax kw (make-rename-transformer #'keyword)))
 
+(define-syntax make-mutable-match-lambda/infer-name
+  (lambda (stx)
+    (syntax-parse stx
+      [(make-mutable-match-lambda/infer-name proc:expr ...)
+       #:with name (syntax-local-infer-name stx)
+       #'(make-mutable-match-lambda #:name 'name proc ...)])))
+
 (define-syntax-rule (mutable-case-lambda clause ...)
-  (make-mutable-match-lambda
+  (make-mutable-match-lambda/infer-name
    (clause->proc #:case-lambda clause) ...))
 
 (define-syntax-rule (mutable-hash-lambda/match clause ...)
-  (make-mutable-match-lambda
+  (make-mutable-match-lambda/infer-name
    (clause->proc #:hash-lambda/match clause) ...))
 
 (define-syntax-rule (mutable-match-lambda clause ...)
-  (make-mutable-match-lambda
+  (make-mutable-match-lambda/infer-name
    (clause->proc #:match-lambda clause) ...))
 
 (define-syntax-rule (mutable-match-lambda* clause ...)
-  (make-mutable-match-lambda
+  (make-mutable-match-lambda/infer-name
    (clause->proc #:match-lambda* clause) ...))
 
 (define-syntax mutable-match-lambda-add-clause!

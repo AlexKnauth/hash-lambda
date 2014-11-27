@@ -6,6 +6,7 @@
          )
 
 (require racket/list
+         racket/format
          racket/match
          kw-utils/keyword-lambda
          kw-utils/arity+keywords
@@ -14,13 +15,19 @@
 
 
 (define (mutable-match-lambda-clause-append #:name [name 'mutable-match-lambda] . orig-fs)
+  (define new-name
+    (cond [(symbol? name) name]
+          [name (string->symbol (~a name))]
+          [else 'mutable-match-lambda]))
+  (define (rename proc)
+    (cond [name (procedure-rename proc new-name)]
+          [else proc]))
   (procedure-reduce-arity+keywords
-   (procedure-rename
+   (rename
     (keyword-lambda (kws kw-args . args)
-      (define next (make-next #:name name orig-fs kws kw-args args))
+      (define next (make-next #:name new-name orig-fs kws kw-args args))
       (parameterize ([current-mutable-match-lambda-next next])
-        (try orig-fs kws kw-args args)))
-    name)
+        (try orig-fs kws kw-args args))))
    (apply arity+keywords-combine/or (map procedure-arity+keywords orig-fs))))
 
 

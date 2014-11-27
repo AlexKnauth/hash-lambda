@@ -9,6 +9,8 @@
          )
 
 (require racket/list
+         racket/match
+         racket/format
          kw-utils/keyword-lambda
          (only-in "communication.rkt" mutable-match-lambda-clause-append)
          (for-syntax racket/base
@@ -18,27 +20,30 @@
 (begin-for-syntax
   (define-syntax kw (make-rename-transformer #'keyword)))
 
-(define (make-mutable-match-lambda . procs)
-  (mutable-match-lambda-procedure procs)) 
+(define (make-mutable-match-lambda #:name [name #f] . procs)
+  (mutable-match-lambda-procedure name procs))
 
-(struct mutable-match-lambda-procedure (procs)
+(struct mutable-match-lambda-procedure (name procs)
   #:transparent #:mutable
+  ;#:property prop:object-name ;if this gets added to racket (https://github.com/plt/racket/pull/729)
+  ;(lambda (this) (mutable-match-lambda-procedure-name this))
   #:property prop:procedure
   (keyword-lambda (kws kw-args this . args)
-    (let ([procs (mutable-match-lambda-procedure-procs this)])
-      (define proc (apply mutable-match-lambda-clause-append procs))
-      (keyword-apply proc kws kw-args args)))
+    (match-define (mutable-match-lambda-procedure name procs) this)
+    (define proc (apply mutable-match-lambda-clause-append procs #:name name))
+    (keyword-apply proc kws kw-args args))
   #:methods gen:custom-write
   [(define (write-proc this out mode)
-     (begin
-       (display "(make-mutable-match-lambda" out)
-       (for ([proc (in-list (mutable-match-lambda-procedure-procs this))])
-         (display " " out) (print proc out))
-       (display ")")))])
+     (match-define (mutable-match-lambda-procedure name procs) this)
+     (cond [name (fprintf out "#<procedure:~a>" name)]
+           [else (display "(make-mutable-match-lambda" out)
+                 (for ([proc (in-list procs)])
+                   (fprintf out " ~v" proc))
+                 (display ")" out)]))])
 
 
 
-(define (mutable-match-lambda-append . args)
+(define (mutable-match-lambda-append #:name [name #f] . args)
   (define (proc->procs proc)
     (cond [(mutable-match-lambda-procedure? proc)
            (append*
@@ -47,10 +52,10 @@
   (define procs
     (append*
      (map proc->procs args)))
-  (mutable-match-lambda-procedure procs))
+  (mutable-match-lambda-procedure name procs))
 
 (define (mutable-match-lambda-copy f)
-  (mutable-match-lambda-append f))
+  (mutable-match-lambda-append f #:name (mutable-match-lambda-procedure-name f)))
 
 
 (define (mutable-match-lambda-add-clause-proc! proc . clause-procs)
