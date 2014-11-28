@@ -13,12 +13,13 @@
          mutable-match-lambda-add-overriding-clause!
          )
 
-(require "mutable-match-lambda-procedure.rkt"
+(require syntax/parse/define
+         "mutable-match-lambda-procedure.rkt"
          "make-clause-proc.rkt"
          "communication.rkt"
+         "let-inferred-name.rkt"
          (for-syntax racket/base
                      syntax/parse
-                     syntax/name
                      (for-syntax racket/base)))
 
 (module+ test
@@ -61,12 +62,9 @@
 (begin-for-syntax
   (define-syntax kw (make-rename-transformer #'keyword)))
 
-(define-syntax make-mutable-match-lambda/infer-name
-  (lambda (stx)
-    (syntax-parse stx
-      [(make-mutable-match-lambda/infer-name proc:expr ...)
-       #:with name (syntax-local-infer-name stx)
-       #'(make-mutable-match-lambda #:name 'name proc ...)])))
+(define-simple-macro (make-mutable-match-lambda/infer-name proc:expr ...)
+  (let/inferred-name name
+    (make-mutable-match-lambda #:name name proc ...)))
 
 (define-syntax-rule (mutable-case-lambda clause ...)
   (make-mutable-match-lambda/infer-name
