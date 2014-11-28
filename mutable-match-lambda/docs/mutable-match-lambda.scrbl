@@ -14,20 +14,6 @@
                      racket/bool
                      racket/math
                      racket/vector))
-@(define (make-hash-lambda-evaluator)
-   (parameterize ([sandbox-namespace-specs (list make-base-namespace)]
-                  [sandbox-output 'string]
-                  [sandbox-error-output 'string])
-     (make-evaluator '(begin (require mutable-match-lambda
-                                      racket/match
-                                      racket/format
-                                      racket/local
-                                      racket/contract
-                                      racket/list
-                                      racket/function
-                                      racket/bool
-                                      racket/math
-                                      racket/vector)))))
 
 @title{mutable-match-lambda}
 
@@ -36,8 +22,7 @@
 These forms and functions allow a mutable generic procedure like this:
 
 @examples[
-  #:eval
-  (make-hash-lambda-evaluator)
+  (require mutable-match-lambda racket/vector)
   (define my+ (mutable-match-lambda))
   my+
   (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? number? ns) ...) (apply + ns)])
@@ -80,8 +65,7 @@ They are defined like this:
   )
 
 @examples[
-  #:eval
-  (make-hash-lambda-evaluator)
+  (require mutable-match-lambda racket/vector)
   (define my+ (make-mutable-match-lambda))
   (mutable-match-lambda-add-clause-proc! my+ (clause->proc #:match-lambda* [(list (? number? ns) ...) (apply + ns)]))
   (my+ 1 2)
@@ -109,8 +93,7 @@ The difference between them is the same as the difference between
 @racket[mutable-match-lambda-add-overriding-clause-proc!].  
 
 @examples[
-  #:eval
-  (make-hash-lambda-evaluator)
+  (require mutable-match-lambda racket/vector)
   (define my+ (make-mutable-match-lambda))
   (mutable-match-lambda-add-clause! my+ #:match-lambda* [(list (? number? ns) ...) (apply + ns)])
   (my+ 1 2)
@@ -187,8 +170,7 @@ It is defined like this:
   )
 
 @examples[
-  #:eval
-  (make-hash-lambda-evaluator)
+  (require mutable-match-lambda)
   (examples)
 ]}
 
@@ -205,8 +187,7 @@ It is defined like this:
   )
 
 @examples[
-  #:eval
-  (make-hash-lambda-evaluator)
+  (require mutable-match-lambda)
   (examples)
 ]}
 
@@ -223,8 +204,7 @@ It is defined like this:
   )
 
 @examples[
-  #:eval
-  (make-hash-lambda-evaluator)
+  (require mutable-match-lambda)
   (examples)
 ]}
 
@@ -241,8 +221,7 @@ It is defined like this:
   )
 
 @examples[
-  #:eval
-  (make-hash-lambda-evaluator)
+  (require mutable-match-lambda)
   (examples)
 ]}
 
@@ -255,8 +234,7 @@ and if @racket[test-proc] returns a true value, it then calls @racket[then-proc]
 If @racket[test-proc] returns @racket[#false], then it moves on to the next clause (if there is one). 
 
 @examples[
-  #:eval
-  (make-hash-lambda-evaluator)
+  (require mutable-match-lambda racket/vector)
   (define clause-1 (make-clause-proc (λ args (andmap number? args))
                                      (λ args (apply + args))))
   (define clause-2 (make-clause-proc (λ args (andmap vector? args))
@@ -291,8 +269,7 @@ to start with @racket[clause->proc] supports @racket[#:case-lambda], @racket[#:h
 @racket[#:match-lambda], and @racket[#:match-lambda*] as keywords.
 
 @examples[
-  #:eval
-  (make-hash-lambda-evaluator)
+  (require mutable-match-lambda)
   (clause->proc #:case-lambda [(x y) (list x y)])
   (define-syntax-rule (clause->proc/bool->ans ans)
     (lambda (x)
