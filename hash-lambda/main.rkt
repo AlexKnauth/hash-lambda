@@ -2,6 +2,8 @@
 
 (provide hash-lambda
          hash-lambda/match
+         apply/kw-hash
+         app/kw-hash
          apply/hash
          args-hash?
          args-hash->args-list
@@ -22,30 +24,27 @@
          racket/local
          racket/contract
          racket/list
-         racket/math)
-
-(require (for-syntax racket/base syntax/parse racket/list syntax/name
-                     (for-syntax racket/base)))
-
+         racket/math
+         kw-utils/keyword-lambda
+         kw-utils/keyword-apply-sort
+         (for-syntax racket/base syntax/parse racket/list syntax/name
+                     (for-syntax racket/base
+                                 )))
 (module+ test
   (require rackunit))
 
 
 
-(require kw-utils/keyword-lambda
-         kw-utils/keyword-apply-sort)
-
-
+(define (keyword-app f kws kw-args . rst-args)
+  (keyword-apply f kws kw-args rst-args))
 
 (begin-for-syntax
   (define-syntax  kw (make-rename-transformer #'keyword))
+  
+  ;; a helper function for hash-lambda
+  (define (id->string id)
+    (symbol->string (syntax->datum id)))
   )
-
-
-
-;; a helper function for hash-lambda
-(define-for-syntax (id->string id)
-  (symbol->string (syntax->datum id)))
 
 ;; (hash-lambda args-hash-id body ...+)
 ;; (hash-lambda [args-hash-id args-hash-contract] body ...+)
@@ -133,72 +132,66 @@
     )
   )
 
+;; (apply/kw-hash proc kw-hash arg ... rst-args)
+(define apply/kw-hash
+  (keyword-lambda (kws kw-args proc kw-hash . other-args)
+    (define kw-lop
+      (sort (hash->list kw-hash) keyword<? #:key car))
+    (keyword-apply keyword-apply kws kw-args proc (map car kw-lop) (map cdr kw-lop) other-args)))
+
+(define app/kw-hash
+  (keyword-lambda (kws kw-args proc kw-hash . rst-args)
+    (keyword-app apply/kw-hash kws kw-args proc kw-hash rst-args)))
+
+;; (args-hash->kw-hash+list args-hash)
+;; returns 2 values:
+;;   the first value is a hash containing the keyword arguments
+;;   the second value is a list containing the positional arguments
+(define (args-hash->kw-hash+list args-hash)
+  (define-values (kw-hash n)
+    (for/fold ([kw-hash (hash)] [n 0])
+              ([(k v) (in-hash args-hash)])
+      (cond [(keyword? k)
+             (values (hash-set kw-hash k v) n)]
+            [(exact-nonnegative-integer? k)
+             (values kw-hash (max n (add1 k)))]
+            [else
+             (error 'args-hash
+                    (string-append "expected a keyword or a natural number as a key, given: ~v\n"
+                                   "  args-hash: ~v")
+                    k args-hash)])))
+  (define lst
+    (for/list ([i (in-range n)])
+      (hash-ref args-hash i)))
+  (values kw-hash lst))
+
 ;; (apply/hash proc args-hash #:<kw> kw-arg ...)
 ;; like apply, but accepts an args-hash instead of a list
 (define apply/hash
-  (procedure-reduce-keyword-arity
-   (hash-lambda args
-                (match args 
-                  [(hash-table [0 (? procedure? f)] [1 (? args-hash? hash)])
-                   (let* ([kw-lop (for/list ([key (in-hash-keys hash)]
-                                             [val (in-hash-values hash)]
-                                             #:when (keyword? key))
-                                    (cons key val))]
-                          [sorted-kw-lop (sort kw-lop keyword<? #:key car)]
-                          [kws     (map car sorted-kw-lop)]
-                          [kw-args (map cdr sorted-kw-lop)])
-                     (let* ([rest-lop (for/list ([key (in-hash-keys hash)]
-                                                 [val (in-hash-values hash)]
-                                                 #:when (number? key))
-                                        (cons key val))]
-                            [sorted-rest-lop (sort rest-lop < #:key car)]
-                            [rest-args (map cdr sorted-rest-lop)])
-                       (keyword-apply f kws kw-args rest-args)))]
-                  [(hash-table [0 (? procedure? f)] [1 (? args-hash? hash)]
-                               [(? keyword? kws) kw-args] ...)
-                   (apply/hash f
-                               (make-hash
-                                (append (for/list ([kw     (in-list kws)]
-                                                   [kw-arg (in-list kw-args)])
-                                          (cons kw kw-arg))
-                                        (hash->list hash))))]
-                  [_ (find-|apply/hash|-error args)]
-                  ))
-   2
-   '()
-   #f))
-
-(define (find-|apply/hash|-error args)
-  (unless (args-hash? args)
-    (error "apply/hash: args is not an args-hash, given:" args))
-  (match args
-    [(hash-table [0 f] [other-keys other-vals] ...)
-     (unless (procedure? f)
-       (raise-argument-error 'apply/hash "procedure?" f))]
-    [_ (error "apply/hash: args does not have a key of 0, given:" args)])
-  (match args
-    [(hash-table [0 f] [1 hash] [other-keys other-vals] ...)
-     (unless (args-hash? hash)
-       (raise-argument-error 'apply/hash "args-hash?" hash))
-     (for ([key (in-list other-keys)])
-       (unless (keyword? key)
-         (error
-          (string-append
-           "apply/hash: the keywords in args are not all keywords," "\n"
-           "  given: "(~v key)" in: "(~v args)"" "\n"
-           "  (probably hash-lambda's fault)"))))]
-    [_ (error "apply/hash: args does not have a key of 1, given:" args)])
-  (error "I don't know"))
-
+  (keyword-lambda (kws kw-args f args-hash)
+    (define-values (kw-hash lst)
+      (args-hash->kw-hash+list args-hash))
+    (keyword-app apply/kw-hash kws kw-args f kw-hash lst)))
+  
 (module+ test
-  (local []
+  (test-case "apply/kw-hash"
+    (check-equal? (apply/kw-hash list (hash) 0 1 '(2 3))
+                  '(0 1 2 3))
+    (check-equal? (app/kw-hash list (hash) 0 1 '(2 3))
+                  '(0 1 (2 3)))
+    (define (kinetic-energy #:m m #:v v)
+      (* 1/2 m (sqr v)))
+    (check-equal? (apply/kw-hash kinetic-energy (hash '#:m 2 '#:v 1) '())
+                  1)
+    )
+  (test-case "apply/hash"
     (check-equal? (apply/hash list (hash 0 "0" 1 "1"))
                   (list "0" "1"))
     (check-equal? (apply/hash list (hash 1 "1" 0 "0"))
                   (list "0" "1"))
-    (define (kinetic-energy #:mass m #:velocity v)
+    (define (kinetic-energy #:m m #:v v)
       (* 1/2 m (sqr v)))
-    (check-equal? (apply/hash kinetic-energy (hash '#:mass 2 '#:velocity 1))
+    (check-equal? (apply/hash kinetic-energy (hash '#:m 2 '#:v 1))
                   1)
     ))
 
@@ -224,25 +217,12 @@
 ;; like (apply/hash list x), but if x isn't an args-hash or has any keywords, 
 ;; it returns false instead of raising an exeption
 (define (args-hash->args-list x)
-  (cond [(not (hash? x)) #false]
-        [#true
-         (define lop (hash->list x))
-         (cond
-           [(not (for/and ([pair (in-list lop)])
-                   (exact-nonnegative-integer? (car pair))))
-            #false]
-           [else
-            (define sorted-lop (sort lop < #:key car))
-            (struct my-exn ())
-            (with-handlers ([my-exn? (λ (e) #false)])
-              (for/list ([pair (in-list sorted-lop)]
-                         [n (in-naturals)])
-                (let ([key (car pair)]
-                      [val (cdr pair)])
-                  (cond [(equal? key n)
-                         val]
-                        [else
-                         (raise (my-exn))]))))])]))
+  (cond [(not (args-hash? x)) #false]
+        [else
+         (define-values (kw-hash lst)
+           (args-hash->kw-hash+list x))
+         (cond [(hash-empty? kw-hash) lst]
+               [else #false])]))
 
 
 
