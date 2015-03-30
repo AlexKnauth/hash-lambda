@@ -11,6 +11,7 @@
          racket/contract
          kw-utils/keyword-lambda
          mutable-match-lambda
+         hash-lambda/mutable-match-lambda
          (for-syntax racket/base
                      syntax/parse
                      syntax/name

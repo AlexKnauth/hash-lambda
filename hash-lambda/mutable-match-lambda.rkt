@@ -8,6 +8,7 @@
          (only-in mutable-match-lambda
                   make-mutable-match-lambda/infer-name
                   clause->proc
+                  mutable-match-lambda-next
                   )
          )
 
