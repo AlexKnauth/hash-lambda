@@ -14,3 +14,5 @@ source code: @url["https://github.com/AlexKnauth/hash-lambda"]
 
 @include-section[(lib "keyword-lambda/docs/keyword-case-lambda.scrbl")]
 
+@include-section[(lib "hash-lambda/docs/mutable-match-lambda.scrbl")]
+
