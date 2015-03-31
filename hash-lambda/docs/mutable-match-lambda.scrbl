@@ -31,7 +31,7 @@ It is defined like this:
   )
 
 @examples[
-  (require mutable-match-lambda)
+  (require hash-lambda/mutable-match-lambda)
   (examples)
 ]}
 
