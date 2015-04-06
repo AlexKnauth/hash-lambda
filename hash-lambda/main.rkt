@@ -29,6 +29,7 @@
          kw-utils/keyword-lambda
          kw-utils/keyword-apply-sort
          (except-in kw-utils/arity+keywords arity-map)
+         "prop-object-name.rkt"
          (for-syntax racket/base syntax/parse racket/list syntax/name unstable/syntax
                      (for-syntax racket/base
                                  )))
@@ -60,33 +61,33 @@
   (lambda (stx)
     (syntax-parse stx
       [(hash-lambda args-hash:id body:expr ...+)
+       ;#:with name (or (syntax-local-infer-name stx) '||)
        ;#'(hash-lambda-procedure
-        ;  (#%plain-lambda (args-hash)
-         ;                 body ...))
+       ;   (let ([name (#%plain-lambda (args-hash) body ...)])
+       ;     name))
        #'(keyword-lambda (kws kw-args . rest)
            (let ([args-hash (keyword-apply-make-args-hash kws kw-args rest)])
              body ...))]
       [(hash-lambda [args-hash:id args-hash-contract] body:expr ...+)
        #:declare args-hash-contract
        (expr/c #'contract? #:name (string-append "contract for "(id->string #'args-hash)""))
-       (with-syntax ([name (cond [(syntax-local-infer-name stx)]
-                                 [else '||])])
-         #'(local [(define/contract name
-                     (make-hash-lambda-contract args-hash-contract 'any)
-                     (hash-lambda args-hash
-                       body ...))]
-             name))]
+       #:with name (or (syntax-local-infer-name stx) '||)
+       #'(local [(define/contract name
+                   (make-hash-lambda-contract args-hash-contract 'any)
+                   (hash-lambda args-hash
+                     body ...))]
+           name)]
       )))
 
 (struct hash-lambda-procedure (proc)
+  #:transparent
+  #:property prop:object-name
+  (λ (this) (object-name (hash-lambda-procedure-proc this)))
   #:property prop:procedure
-  (procedure-reduce-keyword-arity
-   (keyword-lambda (kws kw-args this . rest-args)
-     (let ([this.proc (hash-lambda-procedure-proc this)])
-       (this.proc (keyword-apply-make-args-hash kws kw-args rest-args))))
-   (arity-at-least 1)
-   '() #f)
-  #:transparent)
+  (keyword-lambda (kws kw-args this . rest-args)
+    (let ([this.proc (hash-lambda-procedure-proc this)])
+      (this.proc (keyword-apply-make-args-hash kws kw-args rest-args))))
+  )
 
 (define-syntax-rule (hash-lambda/match match-clause ...)
   (hash-lambda args-hash
