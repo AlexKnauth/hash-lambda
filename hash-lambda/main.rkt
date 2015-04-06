@@ -224,6 +224,7 @@
 
 (define (args-hash? x)
   (and (hash? x)
+       (immutable? x)
        (for/and ([key (in-hash-keys x)])
          (or (exact-nonnegative-integer? key)
              (keyword? key)))
@@ -300,8 +301,6 @@
   (hash-ref args-hash 0))
 
 (define/contract (args-hash-rest args-hash) ((and/c args-hash? (hash-has-key?/c 0)) . -> . args-hash?)
-  (when (not (immutable? args-hash))
-    (set! args-hash (make-immutable-hash (hash->list args-hash))))
   (for/hash ([(key val) (in-hash (hash-remove args-hash 0))])
     (cond [(number? key)
            (values (sub1 key) val)]
@@ -502,54 +501,6 @@
                    #:first-order procedure?
                    #:projection (apply make-hash-lambda-contract-proj
                                        (map contract-projection_0 args)))))
-
-
-
-(define (procedure-required-keywords f)
-  (#%app (compose first list procedure-keywords) f))
-
-(define (procedure-allowed-keywords f)
-  (#%app (compose second list procedure-keywords) f))
-
-(define/contract (arity-map f arity)
-  ((exact-nonnegative-integer? . -> . any/c) procedure-arity? . -> . any/c)
-  (match arity
-    [(? exact-nonnegative-integer? _)
-     (f arity)]
-    [(arity-at-least v)
-     (arity-at-least (arity-map f v))]
-    [(? list? _)
-     (for/list ([sub-arity (in-list arity)])
-       (arity-map f sub-arity))]
-    [_
-     (error "what? arity is:" arity)]))
-
-
-
-
-
-
-
-
-
-
-
-(define my-hash=?
-  (lambda args
-    (for/and ([h (in-list args)])
-      (for/and ([other-h (in-list args)] #:when (not (equal? h other-h)))
-        (for/and ([h-key (in-hash-keys h)])
-          (and (hash-has-key? other-h h-key)
-               (equal? (hash-ref h h-key)
-                       (hash-ref other-h h-key))))))))
-
-
-
-
-
-
-
-
 
 
 
