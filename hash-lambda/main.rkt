@@ -469,14 +469,14 @@
 
 
 (define ((make-hash-lambda-contract-proj args-hash-contract-proj range-contract-proj) blame)
-  (lambda (f)
-    (unless (procedure? f)
-      (raise-blame-error blame f
-                         '(expected: "procedure?" given: "~e") f))
-    (local [(define args-hash-blame (blame-add-context blame "the args-hash of" #:swap? #t))
-            (define range-blame     (blame-add-context blame "the range of"))
-            (define args-hash-wrapper (args-hash-contract-proj args-hash-blame))
-            (define range-wrapper     (range-contract-proj range-blame))]
+  (local [(define args-hash-blame (blame-add-context blame "the args-hash of" #:swap? #t))
+          (define range-blame     (blame-add-context blame "the range of"))
+          (define args-hash-wrapper (args-hash-contract-proj args-hash-blame))
+          (define range-wrapper     (range-contract-proj range-blame))]
+    (lambda (f)
+      (unless (procedure? f)
+        (raise-blame-error blame f
+                           '(expected: "procedure?" given: "~e") f))
       (procedure-rename
        (procedure-reduce-arity+keywords
         (hash-lambda args-hash
@@ -555,25 +555,17 @@
 
 
 (define (args-hash->string args-hash)
-  (define (key<? a b)
-    (cond [(and (number?  a) (number?  b)) (< a b)]
-          [(and (keyword? a) (keyword? b)) (keyword<? a b)]
-          [(and (number?  a) (keyword? b)) #t]
-          [(and (keyword? a) (number?  b)) #f]
-          [else (error 'args-hash->string
-                       "key should be either a number or a keyword, but keys are ~v and ~v"
-                       a b)]))
-  (let* ([lop (hash->list args-hash)]
-         [sorted-lop (sort lop key<? #:key car)])
-    (string-append
-     "(make-args-hash"
-     (apply string-append
-            (for/list ([p (in-list sorted-lop)])
-              (let ([key (car p)] [val (cdr p)])
-                (string-append
-                 (if (keyword? key) (string-append " "(~s key)" ") " ")
-                 (~v val)))))
-     ")")))
+  (define-values [kw-hsh lst] (args-hash->kw-hash+list args-hash))
+  (define (string-append* . args)
+    (apply string-append (flatten args)))
+  (string-append*
+   "(make-args-hash"
+   (for/list ([arg (in-list lst)])
+     (format " ~v" arg))
+   (for/list ([p (in-list (sort (hash->list kw-hsh) keyword<? #:key car))])
+     (match-define (cons kw arg) p)
+     (format " ~s ~v" kw arg))
+   ")"))
 
 
 
