@@ -28,6 +28,8 @@
          unstable/hash
          kw-utils/keyword-lambda
          kw-utils/keyword-apply-sort
+         kw-utils/keyword-app
+         kw-utils/kw-hash
          (except-in kw-utils/arity+keywords arity-map)
          "prop-object-name.rkt"
          (for-syntax racket/base syntax/parse racket/list syntax/name unstable/syntax
@@ -37,9 +39,6 @@
   (require rackunit))
 
 
-
-(define (keyword-app f kws kw-args . rst-args)
-  (keyword-apply f kws kw-args rst-args))
 
 (begin-for-syntax
   (define-syntax  kw (make-rename-transformer #'keyword))
@@ -135,34 +134,6 @@
     )
   )
 
-;; (apply/kw-hash proc kw-hash arg ... rst-args)
-(define apply/kw-hash
-  (keyword-lambda (kws kw-args proc kw-hash . other-args)
-    (define kw-lop
-      (sort (hash->list kw-hash) keyword<? #:key car))
-    (keyword-apply keyword-apply kws kw-args proc (map car kw-lop) (map cdr kw-lop) other-args)))
-
-(define app/kw-hash
-  (keyword-lambda (kws kw-args proc kw-hash . rst-args)
-    (keyword-app apply/kw-hash kws kw-args proc kw-hash rst-args)))
-
-;; equivalent to (keyword-app make-kw-hash kws kw-args)
-(define (keyword-app-make-kw-hash kws kw-args)
-  (make-immutable-hash
-   (for/list ([kw     (in-list kws)]
-              [kw-arg (in-list kw-args)])
-     (cons kw kw-arg))))
-
-(define make-kw-hash
-  (keyword-lambda (kws kw-args)
-    (keyword-app-make-kw-hash kws kw-args)))
-
-(define make-kw-hash+list
-  (keyword-lambda (kws kw-args . args)
-    (define kw-hash
-      (keyword-app-make-kw-hash kws kw-args))
-    (values kw-hash args)))
-
 ;; kw-hash+list->args-hash : (Hashof Kw Any) (Listof Any) -> (Hashof (U Kw Nat) Any)
 (define (kw-hash+list->args-hash kw-hash lst)
   (for/fold ([args-hash kw-hash]) ([arg (in-list lst)] [i (in-naturals)])
@@ -200,16 +171,6 @@
     (keyword-app apply/kw-hash kws kw-args f kw-hash lst)))
 
 (module+ test
-  (test-case "apply/kw-hash"
-    (check-equal? (apply/kw-hash list (hash) 0 1 '(2 3))
-                  '(0 1 2 3))
-    (check-equal? (app/kw-hash list (hash) 0 1 '(2 3))
-                  '(0 1 (2 3)))
-    (define (kinetic-energy #:m m #:v v)
-      (* 1/2 m (sqr v)))
-    (check-equal? (apply/kw-hash kinetic-energy (hash '#:m 2 '#:v 1) '())
-                  1)
-    )
   (test-case "apply/hash"
     (check-equal? (apply/hash list (hash 0 "0" 1 "1"))
                   (list "0" "1"))
