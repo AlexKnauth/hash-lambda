@@ -25,7 +25,7 @@
          racket/contract
          racket/list
          racket/math
-         unstable/hash
+         racket/hash
          kw-utils/keyword-lambda
          kw-utils/keyword-apply-sort
          kw-utils/keyword-app

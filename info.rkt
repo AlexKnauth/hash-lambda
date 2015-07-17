@@ -3,7 +3,6 @@
 (define collection 'multi)
 
 (define deps '("base"
-               "unstable-list-lib"
                "kw-utils"
                "mutable-match-lambda"
                "rackunit-lib"
