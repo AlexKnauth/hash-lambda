@@ -32,7 +32,7 @@
          kw-utils/kw-hash
          (except-in kw-utils/arity+keywords arity-map)
          "prop-object-name.rkt"
-         (for-syntax racket/base syntax/parse racket/list syntax/name unstable/syntax
+         (for-syntax racket/base syntax/parse racket/list syntax/name syntax/transformer
                      (for-syntax racket/base
                                  )))
 (module+ test
