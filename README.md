@@ -1,7 +1,5 @@
-hash-lambda
-===========
-
-[![Build Status](https://travis-ci.org/AlexKnauth/hash-lambda.png?branch=master)](https://travis-ci.org/AlexKnauth/hash-lambda)
+hash-lambda [![Build Status](https://travis-ci.org/AlexKnauth/hash-lambda.png?branch=master)](https://travis-ci.org/AlexKnauth/hash-lambda)
+===
 
 documentation: http://pkg-build.racket-lang.org/doc/hash-lambda-toc/index.html
 
